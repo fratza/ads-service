@@ -1,0 +1,71 @@
+<h1>Dashboard</h1>
+<p>Welcome to your dashboard!</p>
+
+<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Card with buttons -->
+    <ntv-card variant="elevated" shadow="md" rounded="lg">
+        <div class="p-6">
+            <h2 class="text-xl font-bold mb-2">Welcome Card</h2>
+            <p class="text-gray-600 mb-4">This is a card component from component-pantry with elevated style.</p>
+            <div class="space-x-2">
+                <ntv-button 
+                    variant="primary" 
+                    size="md"
+                    (buttonClick)="onButtonClick($event)">
+                    Click Me!
+                </ntv-button>
+                <ntv-button 
+                    variant="success" 
+                    size="md"
+                    [config]="{ shadow: true, rounded: 'lg' }">
+                    Success Button
+                </ntv-button>
+            </div>
+        </div>
+    </ntv-card>
+
+    <!-- Outlined card -->
+    <ntv-card variant="outlined" rounded="lg" [hoverEffect]="true">
+        <div class="p-6">
+            <h2 class="text-xl font-bold mb-2">Outlined Card</h2>
+            <p class="text-gray-600 mb-4">This card has an outlined variant with hover effects.</p>
+            <ul class="list-disc list-inside text-sm text-gray-700">
+                <li>Component Pantry is working!</li>
+                <li>Tailwind styles are applied</li>
+                <li>Theme colors are configured</li>
+            </ul>
+        </div>
+    </ntv-card>
+
+    <!-- Filled card with custom color -->
+    <ntv-card 
+        variant="filled" 
+        [backgroundColor]="'#8dcb2c'" 
+        rounded="xl" 
+        shadow="lg">
+        <div class="p-6 text-white">
+            <h2 class="text-xl font-bold mb-2">Custom Color Card</h2>
+            <p class="mb-4">This card uses a custom background color (accent green).</p>
+            <ntv-button 
+                variant="outline" 
+                size="sm"
+                [config]="{ shadow: false }">
+                Learn More
+            </ntv-button>
+        </div>
+    </ntv-card>
+
+    <!-- Clickable card -->
+    <ntv-card 
+        variant="default" 
+        [clickable]="true" 
+        [hoverEffect]="true"
+        rounded="lg"
+        shadow="sm"
+        (cardClick)="onButtonClick($event)">
+        <div class="p-6">
+            <h2 class="text-xl font-bold mb-2">Clickable Card</h2>
+            <p class="text-gray-600">Click anywhere on this card to trigger an event!</p>
+        </div>
+    </ntv-card>
+</div>
