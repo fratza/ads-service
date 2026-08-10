@@ -22,9 +22,9 @@ export class ResourceController {
     async getAll(req: Request, res: Response): Promise<void> {
         try {
             // Parse query parameters
-            const limit = parseInt((req.query.limit as string) || '100', 10);
-            const offset = parseInt((req.query.offset as string) || '0', 10);
-            const filter = req.query.filter as string | undefined;
+            const limit = parseInt((req.query['limit'] as string) || '100', 10);
+            const offset = parseInt((req.query['offset'] as string) || '0', 10);
+            const filter = req.query['filter'] as string | undefined;
 
             // Call service
             const resources = await this.resourceService.getAll({
@@ -57,7 +57,7 @@ export class ResourceController {
      */
     async getById(req: Request, res: Response): Promise<void> {
         try {
-            const { id } = req.params;
+            const id = String(req.params['id']);
 
             const resource = await this.resourceService.getById(id);
 
@@ -73,7 +73,7 @@ export class ResourceController {
                 data: resource,
             });
         } catch (error) {
-            console.error(`[Resource Controller] Failed to fetch resource ${req.params.id}:`, error);
+            console.error(`[Resource Controller] Failed to fetch resource ${req.params['id']}:`, error);
             res.status(500).json({
                 error: 'fetch_failed',
                 errorDescription: 'Failed to fetch resource',
@@ -110,7 +110,7 @@ export class ResourceController {
      */
     async update(req: Request, res: Response): Promise<void> {
         try {
-            const { id } = req.params;
+            const id = String(req.params['id']);
             const data = req.body;
 
             const resource = await this.resourceService.update(id, data);
@@ -128,7 +128,7 @@ export class ResourceController {
                 message: 'Resource updated successfully',
             });
         } catch (error) {
-            console.error(`[Resource Controller] Failed to update resource ${req.params.id}:`, error);
+            console.error(`[Resource Controller] Failed to update resource ${req.params['id']}:`, error);
             res.status(500).json({
                 error: 'update_failed',
                 errorDescription: 'Failed to update resource',
@@ -142,7 +142,7 @@ export class ResourceController {
      */
     async delete(req: Request, res: Response): Promise<void> {
         try {
-            const { id } = req.params;
+            const id = String(req.params['id']);
 
             await this.resourceService.delete(id);
 
@@ -150,7 +150,7 @@ export class ResourceController {
                 message: 'Resource deleted successfully',
             });
         } catch (error) {
-            console.error(`[Resource Controller] Failed to delete resource ${req.params.id}:`, error);
+            console.error(`[Resource Controller] Failed to delete resource ${req.params['id']}:`, error);
             res.status(500).json({
                 error: 'delete_failed',
                 errorDescription: 'Failed to delete resource',

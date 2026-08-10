@@ -1,0 +1,213 @@
+.settings-intro {
+    display: flex;
+    gap: 13px;
+    align-items: center;
+    margin-bottom: 22px;
+}
+.settings-intro > span {
+    width: 45px;
+    height: 45px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #eef2fb;
+    color: #4064b4;
+}
+.settings-intro h2 {
+    font-size: 22px;
+    margin: 0;
+}
+.settings-intro p {
+    font-size: 10px;
+    color: #818a99;
+    margin: 4px 0 0;
+}
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+.settings-grid > section {
+    overflow: hidden;
+    border: 1px solid #e6e9ef;
+    border-radius: 11px;
+    background: #fff;
+}
+.settings-grid header {
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    border-bottom: 1px solid #edf0f4;
+}
+.settings-grid h3 {
+    font-size: 12px;
+    margin: 0;
+}
+.settings-grid header p {
+    font-size: 8px;
+    color: #929aa7;
+    margin: 4px 0 0;
+}
+.settings-grid header > span {
+    padding: 4px 7px;
+    border-radius: 5px;
+    background: #f1f3f6;
+    color: #7d8694;
+    font-size: 7px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.settings-grid article {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0f4;
+}
+.settings-grid article:last-child {
+    border: 0;
+}
+.settings-grid article i {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    color: #fff;
+    font-style: normal;
+    font-weight: 900;
+}
+.sheets {
+    background: #24a465;
+}
+.create {
+    background: #6e58d9;
+}
+.settings-grid article div {
+    flex: 1;
+}
+.settings-grid article strong {
+    font-size: 10px;
+}
+.settings-grid article p {
+    font-size: 8px;
+    color: #8b94a2;
+    margin: 3px 0 0;
+}
+.settings-grid button {
+    border: 1px solid #e0e3e8;
+    border-radius: 7px;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    color: #a1a7b1;
+    font: inherit;
+    font-size: 8px;
+}
+.placeholder {
+    text-align: center;
+    padding: 48px 30px;
+}
+.placeholder > span {
+    display: grid;
+    place-items: center;
+    margin: auto;
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: #f0f2f9;
+    color: #4064b4;
+}
+.placeholder h4 {
+    font-size: 11px;
+    margin: 12px 0 5px;
+}
+.placeholder p {
+    max-width: 340px;
+    margin: auto;
+    color: #8b94a3;
+    font-size: 8.5px;
+    line-height: 1.6;
+}
+@media (max-width: 800px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Readable settings scale */
+.settings-intro {
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.settings-intro > span {
+    width: 54px;
+    height: 54px;
+}
+.settings-intro h2 {
+    font-size: 29px;
+}
+.settings-intro p {
+    margin-top: 6px;
+    font-size: 14px;
+}
+.settings-grid {
+    gap: 22px;
+}
+.settings-grid header {
+    height: 82px;
+    padding: 0 22px;
+}
+.settings-grid h3 {
+    font-size: 16px;
+}
+.settings-grid header p {
+    margin-top: 5px;
+    font-size: 12px;
+}
+.settings-grid header > span {
+    padding: 6px 9px;
+    font-size: 9px;
+}
+.settings-grid article {
+    gap: 14px;
+    padding: 21px 22px;
+}
+.settings-grid article i {
+    width: 44px;
+    height: 44px;
+}
+.settings-grid article strong {
+    font-size: 14px;
+}
+.settings-grid article p {
+    margin-top: 5px;
+    font-size: 12px;
+}
+.settings-grid button {
+    padding: 9px 14px;
+    font-size: 11px;
+}
+.placeholder {
+    padding: 60px 34px;
+}
+.placeholder > span {
+    width: 54px;
+    height: 54px;
+}
+.placeholder h4 {
+    margin-top: 16px;
+    font-size: 15px;
+}
+.placeholder p {
+    font-size: 12px;
+}
+
+.settings-grid header p,
+.settings-grid header > span,
+.settings-grid article p,
+.settings-grid button,
+.placeholder p {
+    font-size: 12px;
+}

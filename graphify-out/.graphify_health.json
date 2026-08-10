@@ -1,0 +1,187 @@
+{
+  "node_count": 541,
+  "unverified_node_count": 0,
+  "raw_edge_count": 962,
+  "non_object_edges": 0,
+  "missing_endpoint_edges": 0,
+  "dangling_endpoint_edges": 119,
+  "self_loop_edges": 0,
+  "valid_candidate_edges": 843,
+  "exact_duplicate_edges": 0,
+  "directed_unique_endpoint_pairs": 800,
+  "directed_same_endpoint_collapsed_edges": 43,
+  "undirected_unique_endpoint_pairs": 800,
+  "undirected_same_endpoint_collapsed_edges": 43,
+  "same_endpoint_group_count": 43,
+  "relation_variant_groups": 41,
+  "source_file_variant_groups": 0,
+  "source_location_variant_groups": 2,
+  "context_variant_groups": 0,
+  "post_build_graph_type": "Graph",
+  "post_build_node_count": 541,
+  "post_build_edge_count": 800,
+  "post_build_error": "",
+  "producer_suppression": {
+    "path": "/Users/fratzantigua/.local/share/uv/tools/graphifyy/lib/python3.14/site-packages/graphify/extract.py",
+    "total_sites": 10,
+    "sites": [
+      {
+        "line": 1047,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 1197,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 1199,
+        "name": "seen_doc_refs",
+        "tuple_arity": 0,
+        "sample": "seen_doc_refs: set[str] = set()"
+      },
+      {
+        "line": 1622,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = {n[\"id\"] for n in nodes}"
+      },
+      {
+        "line": 2091,
+        "name": "seen_keys",
+        "tuple_arity": 0,
+        "sample": "seen_keys: set[tuple] = set()"
+      },
+      {
+        "line": 3014,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3122,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3201,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3696,
+        "name": "seen_ids",
+        "tuple_arity": 0,
+        "sample": "seen_ids: set[str] = set()"
+      },
+      {
+        "line": 3697,
+        "name": "seen_edges",
+        "tuple_arity": 4,
+        "sample": "seen_edges: set[tuple[str, str, str, str | None]] = set()"
+      }
+    ],
+    "error": ""
+  },
+  "examples": [
+    {
+      "source": "angular_options_styles",
+      "target": "ref_src_styles_scss",
+      "edge_count": 2,
+      "relations": [
+        "extends"
+      ],
+      "source_files": [
+        "angular.json"
+      ],
+      "source_locations": [
+        "L107",
+        "L30"
+      ],
+      "contexts": [
+        "import"
+      ]
+    },
+    {
+      "source": "src_app_core_guards_auth_index",
+      "target": "src_app_core_guards_auth_auth_guard",
+      "edge_count": 2,
+      "relations": [
+        "imports_from",
+        "re_exports"
+      ],
+      "source_files": [
+        "src/app/core/guards/auth/index.ts"
+      ],
+      "source_locations": [
+        "L1"
+      ],
+      "contexts": [
+        "export",
+        "re-export"
+      ]
+    },
+    {
+      "source": "src_app_core_guards_guest_index",
+      "target": "src_app_core_guards_guest_guest_guard",
+      "edge_count": 2,
+      "relations": [
+        "imports_from",
+        "re_exports"
+      ],
+      "source_files": [
+        "src/app/core/guards/guest/index.ts"
+      ],
+      "source_locations": [
+        "L1"
+      ],
+      "contexts": [
+        "export",
+        "re-export"
+      ]
+    },
+    {
+      "source": "src_app_core_guards_index",
+      "target": "src_app_core_guards_auth_index",
+      "edge_count": 2,
+      "relations": [
+        "imports_from",
+        "re_exports"
+      ],
+      "source_files": [
+        "src/app/core/guards/index.ts"
+      ],
+      "source_locations": [
+        "L6"
+      ],
+      "contexts": [
+        "export",
+        "re-export"
+      ]
+    },
+    {
+      "source": "src_app_core_guards_index",
+      "target": "src_app_core_guards_guest_index",
+      "edge_count": 2,
+      "relations": [
+        "imports_from",
+        "re_exports"
+      ],
+      "source_files": [
+        "src/app/core/guards/index.ts"
+      ],
+      "source_locations": [
+        "L7"
+      ],
+      "contexts": [
+        "export",
+        "re-export"
+      ]
+    }
+  ]
+}

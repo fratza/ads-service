@@ -1,71 +1,187 @@
-<h1>Dashboard</h1>
-<p>Welcome to your dashboard!</p>
+<section class="welcome-row">
+    <div>
+        <p class="eyebrow">MONDAY, JULY 20</p>
+        <h2>Good morning, Fratz</h2>
+        <p>Here’s what’s happening with your advertisement requests today.</p>
+    </div>
+    <div class="welcome-actions">
+        <a [routerLink]="['/client/request', 'new']" class="button button--secondary"
+            ><span>↗</span> Open client form</a
+        >
+        <a routerLink="/advertisements/new" class="button button--primary"
+            ><span>＋</span> Create request</a
+        >
+    </div>
+</section>
 
-<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Card with buttons -->
-    <ntv-card variant="elevated" shadow="md" rounded="lg">
-        <div class="p-6">
-            <h2 class="text-xl font-bold mb-2">Welcome Card</h2>
-            <p class="text-gray-600 mb-4">This is a card component from component-pantry with elevated style.</p>
-            <div class="space-x-2">
-                <ntv-button 
-                    variant="primary" 
-                    size="md"
-                    (buttonClick)="onButtonClick($event)">
-                    Click Me!
-                </ntv-button>
-                <ntv-button 
-                    variant="success" 
-                    size="md"
-                    [config]="{ shadow: true, rounded: 'lg' }">
-                    Success Button
-                </ntv-button>
+<section class="stat-grid" aria-label="Request summary">
+    @for (stat of stats(); track stat.label) {
+        <article class="stat-card">
+            <div class="stat-card__top">
+                <span class="stat-icon" [class]="'stat-icon stat-icon--' + stat.tone">
+                    @switch (stat.icon) {
+                        @case ('stack') {
+                            ▤
+                        }
+                        @case ('draft') {
+                            ✎
+                        }
+                        @case ('check') {
+                            ✓
+                        }
+                        @case ('render') {
+                            ↻
+                        }
+                        @case ('complete') {
+                            ◉
+                        }
+                        @default {
+                            !
+                        }
+                    }</span
+                ><span class="stat-menu">•••</span>
+            </div>
+            <div class="stat-card__value">{{ stat.value }}</div>
+            <div class="stat-card__label">{{ stat.label }}</div>
+            <div
+                class="stat-card__meta"
+                [class.stat-card__meta--positive]="stat.tone === 'blue' || stat.tone === 'teal'">
+                {{ stat.tone === 'blue' ? '↗' : '•' }} {{ stat.delta }}
+            </div>
+        </article>
+    }
+</section>
+
+<div class="dashboard-grid">
+    <section class="panel recent-panel">
+        <header class="panel__header">
+            <div>
+                <h3>Recent advertisement requests</h3>
+                <p>Your latest request activity and progress.</p>
+            </div>
+            <a routerLink="/advertisements">View all <span>→</span></a>
+        </header>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Business</th>
+                        <th>Ad types</th>
+                        <th>Status</th>
+                        <th>Updated</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (request of recentRequests(); track request.id) {
+                        <tr>
+                            <td>
+                                <a [routerLink]="['/advertisements', request.id]" class="business"
+                                    ><span>{{
+                                        request.businessName.slice(0, 2).toUpperCase()
+                                    }}</span>
+                                    <div>
+                                        <strong>{{ request.businessName }}</strong
+                                        ><small>{{ request.dealerNumber }}</small>
+                                    </div></a
+                                >
+                            </td>
+                            <td>
+                                <div class="chips">
+                                    @for (type of adTypes(request); track type) {
+                                        <span>{{ type }}</span>
+                                    }
+                                </div>
+                            </td>
+                            <td><app-status-badge [status]="request.status" /></td>
+                            <td>
+                                <span class="date">{{ request.updatedAt | date: 'MMM d, y' }}</span>
+                            </td>
+                            <td>
+                                <a [routerLink]="['/advertisements', request.id]" class="row-action"
+                                    >→</a
+                                >
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="panel distribution-panel">
+        <header class="panel__header">
+            <div>
+                <h3>Status distribution</h3>
+                <p>Across all requests.</p>
+            </div>
+            <button class="period">Last 30 days⌄</button>
+        </header>
+        <div class="distribution-visual">
+            <div
+                class="donut"
+                [style.background]="'conic-gradient(#98a2b3 0 20%, #8dcb2c 20% 30%, #4064b4 30% 60%, #2ea66f 60% 80%, #e73535 80% 90%, #d9e0f0 90%)'">
+                <div>
+                    <strong>{{ requests().length }}</strong
+                    ><small>Total</small>
+                </div>
+            </div>
+            <div class="status-legend">
+                @for (item of distribution(); track item.label) {
+                    <div>
+                        <span class="status-legend__dot" [style.background]="item.color"></span
+                        ><span>{{ item.label }}</span
+                        ><strong>{{ item.count }}</strong
+                        ><small>{{ item.percent }}%</small>
+                    </div>
+                }
             </div>
         </div>
-    </ntv-card>
+    </section>
+</div>
 
-    <!-- Outlined card -->
-    <ntv-card variant="outlined" rounded="lg" [hoverEffect]="true">
-        <div class="p-6">
-            <h2 class="text-xl font-bold mb-2">Outlined Card</h2>
-            <p class="text-gray-600 mb-4">This card has an outlined variant with hover effects.</p>
-            <ul class="list-disc list-inside text-sm text-gray-700">
-                <li>Component Pantry is working!</li>
-                <li>Tailwind styles are applied</li>
-                <li>Theme colors are configured</li>
-            </ul>
+<div class="bottom-grid">
+    <section class="panel activity-panel">
+        <header class="panel__header">
+            <div>
+                <h3>Rendering activity</h3>
+                <p>Live mock production pipeline.</p>
+            </div>
+            <span class="live"><i></i> Live</span>
+        </header>
+        <div class="activity-list">
+            <div class="activity">
+                <span class="activity__icon activity__icon--spin">↻</span>
+                <div>
+                    <strong>Molina’s Cantina</strong>
+                    <p>Rendering outside and inside advertisements</p>
+                </div>
+                <span class="progress"><i style="width: 68%"></i></span><b>68%</b>
+            </div>
+            <div class="activity">
+                <span class="activity__icon">✓</span>
+                <div>
+                    <strong>Verdine Kitchen</strong>
+                    <p>Vertical advertisement completed</p>
+                </div>
+                <span class="activity__time">12 min ago</span>
+            </div>
+            <div class="activity">
+                <span class="activity__icon activity__icon--queued">⋯</span>
+                <div>
+                    <strong>Memorial Pet Care</strong>
+                    <p>Queued for rendering</p>
+                </div>
+                <span class="activity__time">Position 2</span>
+            </div>
         </div>
-    </ntv-card>
-
-    <!-- Filled card with custom color -->
-    <ntv-card 
-        variant="filled" 
-        [backgroundColor]="'#8dcb2c'" 
-        rounded="xl" 
-        shadow="lg">
-        <div class="p-6 text-white">
-            <h2 class="text-xl font-bold mb-2">Custom Color Card</h2>
-            <p class="mb-4">This card uses a custom background color (accent green).</p>
-            <ntv-button 
-                variant="outline" 
-                size="sm"
-                [config]="{ shadow: false }">
-                Learn More
-            </ntv-button>
+    </section>
+    <section class="quick-panel">
+        <div class="quick-panel__art"><span>▶</span><i></i><b></b></div>
+        <div>
+            <span class="quick-label">QUICK ACTION</span>
+            <h3>Bring your next ad to life.</h3>
+            <p>Build a polished request with all the details your creative team needs.</p>
+            <a routerLink="/advertisements/new">Start a new request <span>→</span></a>
         </div>
-    </ntv-card>
-
-    <!-- Clickable card -->
-    <ntv-card 
-        variant="default" 
-        [clickable]="true" 
-        [hoverEffect]="true"
-        rounded="lg"
-        shadow="sm"
-        (cardClick)="onButtonClick($event)">
-        <div class="p-6">
-            <h2 class="text-xl font-bold mb-2">Clickable Card</h2>
-            <p class="text-gray-600">Click anywhere on this card to trigger an event!</p>
-        </div>
-    </ntv-card>
+    </section>
 </div>

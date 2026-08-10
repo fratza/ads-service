@@ -1,0 +1,1069 @@
+@if (isClientIntake()) {
+    <header class="client-header">
+        <a class="client-brand" href="/client/request/{{ clientToken }}"
+            ><span>N</span><strong>NTV360</strong></a
+        >
+        <div>
+            <strong>Advertisement creative brief</strong
+            ><small>Secure client intake · Reference {{ clientToken }}</small>
+        </div>
+        <span class="client-help">Need help? Contact your NTV360 representative.</span>
+    </header>
+    <section class="client-welcome">
+        <span>CLIENT INTAKE</span>
+        <h1>Tell us about your advertisement</h1>
+        <p>
+            Share your business details, messaging, contact information, and available creative
+            assets. You can save your progress and return using this same link on this device.
+        </p>
+        <div>
+            <strong>About 10–15 minutes</strong
+            ><span>Nothing is sent to Creatomate until the brief is reviewed.</span>
+        </div>
+    </section>
+}
+<section class="form-intro">
+    <div>
+        <span class="form-kicker">{{
+            isClientIntake() ? 'YOUR CREATIVE BRIEF' : isEdit() ? 'EDIT REQUEST' : 'NEW REQUEST'
+        }}</span>
+        <h2>
+            {{
+                isClientIntake()
+                    ? 'Advertisement details'
+                    : isEdit()
+                      ? 'Update Creatomate creative brief'
+                      : 'Create Creatomate creative brief'
+            }}
+        </h2>
+        <p>
+            {{
+                isClientIntake()
+                    ? 'Complete each step and review your answers before submitting.'
+                    : 'This intake is the first step: collect and review everything needed before template mapping and rendering.'
+            }}
+        </p>
+    </div>
+    <div class="intro-actions">
+        <span class="autosave"
+            ><i></i>{{ autosaveState() === 'saving' ? 'Saving…' : 'Draft saved locally' }}</span
+        >
+        @if (!isClientIntake()) {
+            <input
+                #importInput
+                type="file"
+                accept=".csv,.json"
+                hidden
+                (change)="importFile($event)" />
+            <button
+                type="button"
+                class="button button--secondary"
+                [disabled]="importing()"
+                (click)="importInput.click()">
+                {{ importing() ? 'Importing…' : '⇩ Import CSV or JSON' }}
+            </button>
+        }
+    </div>
+</section>
+
+@if (!isClientIntake()) {
+    <section class="sheet-import-bar">
+        <div>
+            <strong>Import from Google Sheets</strong>
+            <span
+                >Paste a public sharing link. Imported values will also prefill the Creatomate
+                template you select.</span
+            >
+        </div>
+        <label>
+            <span class="sr-only">Google Sheets URL</span>
+            <input
+                type="url"
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                [value]="googleSheetUrl()"
+                (input)="googleSheetUrl.set($any($event.target).value)"
+                (keydown.enter)="$event.preventDefault(); importGoogleSheet()" />
+        </label>
+        <button
+            type="button"
+            class="button button--primary"
+            [disabled]="importing() || !googleSheetUrl().trim()"
+            (click)="importGoogleSheet()">
+            {{ importing() ? 'Importing…' : 'Import sheet' }}
+        </button>
+    </section>
+}
+
+@if (importIssues().length) {
+    <section class="confirm-row" role="status">
+        <div>
+            <strong>Imported data needs a quick review</strong>
+            <span>The usable fields were added below. Complete these items before submitting:</span>
+        </div>
+        <ul>
+            @for (issue of importIssues(); track issue) {
+                <li>{{ issue }}</li>
+            }
+        </ul>
+    </section>
+}
+
+<nav class="stepper" aria-label="Form progress">
+    @for (step of steps; track step.title; let i = $index) {
+        <button
+            type="button"
+            [class.active]="i === currentStep()"
+            [class.complete]="currentStep() > i"
+            (click)="currentStep() >= i ? goToStep(i) : null">
+            <span>{{ currentStep() > i ? '✓' : i + 1 }}</span
+            ><strong>{{ step.short }}</strong>
+        </button>
+        @if (steps.length - 1 > i) {
+            <i [class.complete]="currentStep() > i"></i>
+        }
+    }
+</nav>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="form-layout">
+        <div class="form-panel">
+            @switch (currentStep()) {
+                @case (0) {
+                    <div formGroupName="dealer" class="step-content">
+                        <header class="step-header">
+                            <span>01</span>
+                            <div>
+                                <h3>Start the creative brief</h3>
+                                <p>
+                                    Identify the client and provide the business context that will
+                                    guide the Creatomate creative.
+                                </p>
+                            </div>
+                        </header>
+                        <div class="field-grid">
+                            <label class="field"
+                                ><span>Dealer Number and Acronym <b>*</b></span
+                                ><input
+                                    formControlName="dealerNumber"
+                                    placeholder="e.g. 515SSD" /><small class="error">{{
+                                    error(
+                                        form.controls.dealer.controls.dealerNumber,
+                                        'Dealer number'
+                                    )
+                                }}</small></label
+                            >
+                            <label class="field"
+                                ><span>Dealer Email <b>*</b></span
+                                ><input
+                                    type="email"
+                                    formControlName="dealerEmail"
+                                    placeholder="dealer@company.com" /><small class="error">{{
+                                    error(form.controls.dealer.controls.dealerEmail, 'Dealer email')
+                                }}</small></label
+                            >
+                            <label class="field"
+                                ><span>Name of Business <b>*</b></span
+                                ><input
+                                    formControlName="businessName"
+                                    placeholder="Business name" /><small class="error">{{
+                                    error(
+                                        form.controls.dealer.controls.businessName,
+                                        'Business name'
+                                    )
+                                }}</small></label
+                            >
+                            <label class="field"
+                                ><span>Length of Ad</span
+                                ><select formControlName="generalAdLength">
+                                    <option [ngValue]="null">Select length</option>
+                                    <option [ngValue]="15">15 seconds</option>
+                                    <option [ngValue]="20">20 seconds</option>
+                                    <option [ngValue]="30">30 seconds</option>
+                                    <option [ngValue]="60">60 seconds</option>
+                                </select></label
+                            >
+                            <fieldset class="field toggle-field">
+                                <legend>Does the business have a logo?</legend>
+                                <div class="segmented">
+                                    <label
+                                        ><input
+                                            type="radio"
+                                            formControlName="hasLogo"
+                                            [value]="true" /><span>Yes</span></label
+                                    ><label
+                                        ><input
+                                            type="radio"
+                                            formControlName="hasLogo"
+                                            [value]="false" /><span>No</span></label
+                                    >
+                                </div>
+                            </fieldset>
+                            <fieldset class="field toggle-field">
+                                <legend>Does the client like their current website?</legend>
+                                <div class="segmented">
+                                    <label
+                                        ><input
+                                            type="radio"
+                                            formControlName="likesCurrentWebsite"
+                                            [value]="true" /><span>Yes</span></label
+                                    ><label
+                                        ><input
+                                            type="radio"
+                                            formControlName="likesCurrentWebsite"
+                                            [value]="false" /><span>No</span></label
+                                    ><label
+                                        ><input
+                                            type="radio"
+                                            formControlName="likesCurrentWebsite"
+                                            [value]="null" /><span>Unsure</span></label
+                                    >
+                                </div>
+                            </fieldset>
+                            <label class="field field--wide"
+                                ><span>Highlights and notes about the customer</span
+                                ><textarea
+                                    formControlName="highlights"
+                                    rows="4"
+                                    placeholder="What makes this business special? Include offers, tone, audience, or creative direction."></textarea>
+                            </label>
+                            <label class="field field--wide"
+                                ><span>File Share Link</span>
+                                <div class="input-icon">
+                                    <span>↗</span
+                                    ><input
+                                        type="url"
+                                        formControlName="fileShareLink"
+                                        placeholder="https://drive.google.com/..." />
+                                </div>
+                                <small class="hint"
+                                    >Google Drive, Dropbox, or another shared folder.</small
+                                ><small class="error">{{
+                                    error(
+                                        form.controls.dealer.controls.fileShareLink,
+                                        'File share link'
+                                    )
+                                }}</small></label
+                            >
+                        </div>
+                    </div>
+                }
+                @case (1) {
+                    <div formGroupName="contact" class="step-content">
+                        <header class="step-header">
+                            <span>02</span>
+                            <div>
+                                <h3>Contact information</h3>
+                                <p>
+                                    Select what should appear in the general advertisement, then
+                                    provide the details.
+                                </p>
+                            </div>
+                        </header>
+                        <div class="section-label">
+                            <h4>Information to include</h4>
+                            <p>Only selected fields will appear in the advertisement.</p>
+                        </div>
+                        <div class="selection-grid">
+                            @for (option of contactOptions; track option.value) {
+                                <label [class.selected]="included(option.value)"
+                                    ><input
+                                        type="checkbox"
+                                        [checked]="included(option.value)"
+                                        (change)="
+                                            toggleContact(
+                                                'contact',
+                                                option.value,
+                                                $any($event.target).checked
+                                            )
+                                        " /><span class="check">✓</span
+                                    ><span class="contact-icon">{{
+                                        option.value === 'website'
+                                            ? '⌘'
+                                            : option.value === 'phone'
+                                              ? '☎'
+                                              : option.value === 'address'
+                                                ? '⌖'
+                                                : '#'
+                                    }}</span
+                                    ><strong>{{ option.label }}</strong></label
+                                >
+                            }
+                        </div>
+                        <div class="field-grid contact-fields">
+                            @if (
+                                included('website') ||
+                                form.controls.contact.controls.generateQrCode.value
+                            ) {
+                                <label class="field"
+                                    ><span>Website <b>*</b></span
+                                    ><input
+                                        type="url"
+                                        formControlName="website"
+                                        placeholder="https://business.com" /><small class="error">{{
+                                        error(form.controls.contact.controls.website, 'Website')
+                                    }}</small></label
+                                >
+                            }
+                            @if (included('phone')) {
+                                <label class="field"
+                                    ><span>Phone <b>*</b></span
+                                    ><input
+                                        formControlName="phone"
+                                        placeholder="(+63) 912 345 6789" /><small class="error">{{
+                                        error(form.controls.contact.controls.phone, 'Phone')
+                                    }}</small></label
+                                >
+                            }
+                            @if (included('address')) {
+                                <label class="field"
+                                    ><span>Address <b>*</b></span
+                                    ><input
+                                        formControlName="address"
+                                        placeholder="Street, city, region" /><small class="error">{{
+                                        error(form.controls.contact.controls.address, 'Address')
+                                    }}</small></label
+                                >
+                            }
+                            @if (included('socialMedia')) {
+                                <label class="field"
+                                    ><span>Social Media</span
+                                    ><input
+                                        formControlName="socialMedia"
+                                        placeholder="@business or profile URL"
+                                /></label>
+                            }
+                        </div>
+                        <label class="switch-row"
+                            ><span class="qr-icon">▦</span>
+                            <div>
+                                <strong>Display website URL as a QR code?</strong
+                                ><small
+                                    >A scannable QR code will be generated from the website
+                                    URL.</small
+                                >
+                            </div>
+                            <input type="checkbox" formControlName="generateQrCode" /><i></i
+                        ></label>
+                    </div>
+                }
+                @case (2) {
+                    <div formGroupName="outside" class="step-content">
+                        <header class="step-header">
+                            <span>03</span>
+                            <div>
+                                <h3>Outside ad</h3>
+                                <p>
+                                    Configure the landscape advertisement shown on outside-facing
+                                    displays.
+                                </p>
+                            </div>
+                        </header>
+                        <label class="enable-card"
+                            ><span class="ad-preview">▰</span>
+                            <div>
+                                <strong>Generate Outside Ad?</strong
+                                ><small>Landscape creative for exterior-facing displays.</small>
+                            </div>
+                            <input type="checkbox" formControlName="enabled" /><i></i
+                        ></label>
+                        @if (form.controls.outside.controls.enabled.value) {
+                            <div class="config-row">
+                                <label class="field"
+                                    ><span>Length of Outside Ad <b>*</b></span
+                                    ><select formControlName="length">
+                                        <option [ngValue]="null">Choose length</option>
+                                        <option [ngValue]="15">15 seconds</option>
+                                        <option [ngValue]="20">20 seconds</option>
+                                        <option [ngValue]="30">30 seconds</option>
+                                    </select></label
+                                >
+                                <div class="contact-picks">
+                                    <span>Contact information to include</span>
+                                    <div>
+                                        @for (option of contactOptions; track option.value) {
+                                            <label
+                                                [class.selected]="
+                                                    optionSelected('outside', option.value)
+                                                "
+                                                ><input
+                                                    type="checkbox"
+                                                    [checked]="
+                                                        optionSelected('outside', option.value)
+                                                    "
+                                                    (change)="
+                                                        toggleContact(
+                                                            'outside',
+                                                            option.value,
+                                                            $any($event.target).checked
+                                                        )
+                                                    " />{{ option.label }}</label
+                                            >
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    messageEditor;
+                                    context: {
+                                        $implicit: 'outside',
+                                        title: 'Outside ad messages',
+                                        array: outsideMessages,
+                                    }
+                                "></ng-container>
+                        } @else {
+                            <div class="disabled-state">
+                                <span>▰</span>
+                                <h4>Outside ad is turned off</h4>
+                                <p>
+                                    Enable it above to configure length, contact details, and
+                                    creative messages.
+                                </p>
+                            </div>
+                        }
+                    </div>
+                }
+                @case (3) {
+                    <div formGroupName="inside" class="step-content">
+                        <header class="step-header">
+                            <span>04</span>
+                            <div>
+                                <h3>Inside ad</h3>
+                                <p>
+                                    Configure the advertisement displayed to customers inside the
+                                    venue.
+                                </p>
+                            </div>
+                        </header>
+                        <label class="enable-card"
+                            ><span class="ad-preview ad-preview--inside">▰</span>
+                            <div>
+                                <strong>Generate Inside Ad?</strong
+                                ><small>Landscape creative for interior-facing displays.</small>
+                            </div>
+                            <input type="checkbox" formControlName="enabled" /><i></i
+                        ></label>
+                        @if (form.controls.inside.controls.enabled.value) {
+                            <div class="config-row">
+                                <label class="field"
+                                    ><span>Inside Ad Length <b>*</b></span
+                                    ><select formControlName="length">
+                                        <option [ngValue]="null">Choose length</option>
+                                        <option [ngValue]="15">15 seconds</option>
+                                        <option [ngValue]="30">30 seconds</option>
+                                        <option [ngValue]="60">60 seconds</option>
+                                    </select></label
+                                >
+                                <div class="contact-picks">
+                                    <span>Contact information to include</span>
+                                    <div>
+                                        @for (option of contactOptions; track option.value) {
+                                            <label
+                                                [class.selected]="
+                                                    optionSelected('inside', option.value)
+                                                "
+                                                ><input
+                                                    type="checkbox"
+                                                    [checked]="
+                                                        optionSelected('inside', option.value)
+                                                    "
+                                                    (change)="
+                                                        toggleContact(
+                                                            'inside',
+                                                            option.value,
+                                                            $any($event.target).checked
+                                                        )
+                                                    " />{{ option.label }}</label
+                                            >
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    messageEditor;
+                                    context: {
+                                        $implicit: 'inside',
+                                        title: 'Inside ad messages',
+                                        array: insideMessages,
+                                    }
+                                "></ng-container>
+                        } @else {
+                            <div class="disabled-state">
+                                <span>▰</span>
+                                <h4>Inside ad is turned off</h4>
+                                <p>Enable it above to configure the interior creative.</p>
+                            </div>
+                        }
+                    </div>
+                }
+                @case (4) {
+                    <div formGroupName="vertical" class="step-content">
+                        <header class="step-header">
+                            <span>05</span>
+                            <div>
+                                <h3>Vertical ads</h3>
+                                <p>
+                                    Create one or more 9:16 variations for portrait displays and
+                                    social placements.
+                                </p>
+                            </div>
+                        </header>
+                        <label class="enable-card"
+                            ><span class="ad-preview ad-preview--vertical">▯</span>
+                            <div>
+                                <strong>Generate Vertical Ads?</strong
+                                ><small>Portrait creative in a standard 9:16 aspect ratio.</small>
+                            </div>
+                            <input type="checkbox" formControlName="enabled" /><i></i
+                        ></label>
+                        @if (form.controls.vertical.controls.enabled.value) {
+                            <div class="config-row">
+                                <label class="field"
+                                    ><span>Number of Vertical Ads <b>*</b></span
+                                    ><input
+                                        type="number"
+                                        min="1"
+                                        max="8"
+                                        formControlName="quantity" /><small class="error">{{
+                                        error(form.controls.vertical.controls.quantity, 'Quantity')
+                                    }}</small></label
+                                >
+                                <div class="contact-picks">
+                                    <span>Contact information to include</span>
+                                    <div>
+                                        @for (option of contactOptions; track option.value) {
+                                            <label
+                                                [class.selected]="
+                                                    optionSelected('vertical', option.value)
+                                                "
+                                                ><input
+                                                    type="checkbox"
+                                                    [checked]="
+                                                        optionSelected('vertical', option.value)
+                                                    "
+                                                    (change)="
+                                                        toggleContact(
+                                                            'vertical',
+                                                            option.value,
+                                                            $any($event.target).checked
+                                                        )
+                                                    " />{{ option.label }}</label
+                                            >
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="messages-header">
+                                <div>
+                                    <h4>Vertical variations</h4>
+                                    <p>The variation count follows the quantity selected above.</p>
+                                </div>
+                                <span>{{ verticalVariations.length }} variation(s)</span>
+                            </div>
+                            <div formArrayName="variations" class="variation-grid">
+                                @for (
+                                    group of verticalVariations.controls;
+                                    track group.controls.id.value;
+                                    let i = $index
+                                ) {
+                                    <article [formGroupName]="i" class="variation-card">
+                                        <header>
+                                            <span class="phone-preview">9:16</span>
+                                            <div>
+                                                <strong>Variation {{ i + 1 }}</strong
+                                                ><small>Portrait advertisement</small>
+                                            </div>
+                                            <b>#{{ i + 1 }}</b>
+                                        </header>
+                                        <label class="field"
+                                            ><span
+                                                >Headline <b>*</b
+                                                ><em
+                                                    >{{ group.controls.headline.value.length }}/{{
+                                                        headlineLimit
+                                                    }}</em
+                                                ></span
+                                            ><input
+                                                formControlName="headline"
+                                                placeholder="Happy Hour Starts Here" /></label
+                                        ><label class="field"
+                                            ><span>Message</span
+                                            ><input
+                                                formControlName="message"
+                                                placeholder="A concise call to action" /></label
+                                        ><label class="field"
+                                            ><span
+                                                >Supporting text
+                                                <em
+                                                    >{{
+                                                        group.controls.supportingText.value.length
+                                                    }}/{{ supportingLimit }}</em
+                                                ></span
+                                            ><textarea
+                                                rows="2"
+                                                formControlName="supportingText"
+                                                placeholder="Add useful context"></textarea>
+                                        </label>
+                                        <div class="mini-grid">
+                                            <label class="field"
+                                                ><span>Aspect ratio</span
+                                                ><input
+                                                    formControlName="aspectRatio"
+                                                    readonly /></label
+                                            ><label class="field"
+                                                ><span>Sort order</span
+                                                ><input type="number" formControlName="sortOrder"
+                                            /></label>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        } @else {
+                            <div class="disabled-state">
+                                <span>▯</span>
+                                <h4>Vertical ads are turned off</h4>
+                                <p>Enable them above to add portrait variations.</p>
+                            </div>
+                        }
+                    </div>
+                }
+                @case (5) {
+                    <div class="step-content">
+                        <header class="step-header">
+                            <span>06</span>
+                            <div>
+                                <h3>Assets</h3>
+                                <p>
+                                    Select visual assets for the creative team. Files stay in this
+                                    browser preview only.
+                                </p>
+                            </div>
+                        </header>
+                        <div class="upload-list">
+                            @for (section of assetSections; track section.category) {
+                                <section class="upload-section">
+                                    <div class="upload-section__title">
+                                        <span>{{
+                                            section.category === 'backgroundVideo'
+                                                ? '▶'
+                                                : section.category === 'logo'
+                                                  ? '◇'
+                                                  : '▧'
+                                        }}</span>
+                                        <div>
+                                            <h4>{{ section.title }}</h4>
+                                            <p>{{ section.description }}</p>
+                                        </div>
+                                    </div>
+                                    <label class="dropzone"
+                                        ><input
+                                            type="file"
+                                            [accept]="section.accept"
+                                            [multiple]="section.multiple"
+                                            (change)="handleFiles($event, section.category)" /><span
+                                            >＋</span
+                                        >
+                                        <div>
+                                            <strong
+                                                >Choose
+                                                {{ section.multiple ? 'files' : 'a file' }}</strong
+                                            ><small
+                                                >{{
+                                                    section.accept.replaceAll('.', '').toUpperCase()
+                                                }}
+                                                · Preview only</small
+                                            >
+                                        </div></label
+                                    >
+                                    @if (assetsFor(section.category).length) {
+                                        <div class="file-list">
+                                            @for (
+                                                asset of assetsFor(section.category);
+                                                track asset.id
+                                            ) {
+                                                <article>
+                                                    @if (asset.previewUrl) {
+                                                        <img [src]="asset.previewUrl" alt="" />
+                                                    } @else {
+                                                        <span>{{
+                                                            asset.type.startsWith('video')
+                                                                ? '▶'
+                                                                : '▧'
+                                                        }}</span>
+                                                    }
+                                                    <div>
+                                                        <strong>{{ asset.name }}</strong
+                                                        ><small
+                                                            >{{ fileSize(asset.size) }} · Ready for
+                                                            future upload</small
+                                                        >
+                                                    </div>
+                                                    <i>Selected</i
+                                                    ><button
+                                                        type="button"
+                                                        aria-label="Remove asset"
+                                                        (click)="removeAsset(asset.id)">
+                                                        ×
+                                                    </button>
+                                                </article>
+                                            }
+                                        </div>
+                                    }
+                                </section>
+                            }
+                        </div>
+                        <label class="field share-link-repeat"
+                            ><span>File Share Link</span>
+                            <div class="input-icon">
+                                <span>↗</span
+                                ><input
+                                    [formControl]="form.controls.dealer.controls.fileShareLink"
+                                    type="url"
+                                    placeholder="https://drive.google.com/..." />
+                            </div>
+                            <small class="hint"
+                                >Use this for source assets too large to select here.</small
+                            ></label
+                        >
+                    </div>
+                }
+                @default {
+                    <div class="step-content review-step">
+                        <header class="step-header">
+                            <span>07</span>
+                            <div>
+                                <h3>Review the Creatomate handoff</h3>
+                                <p>
+                                    Confirm the brief and preview the structured data prepared for
+                                    the future Creatomate integration.
+                                </p>
+                            </div>
+                        </header>
+                        <div class="review-grid">
+                            <section>
+                                <header>
+                                    <div>
+                                        <span>01</span>
+                                        <h4>Dealer and business</h4>
+                                    </div>
+                                    <button type="button" (click)="goToStep(0)">Edit</button>
+                                </header>
+                                <dl>
+                                    <div>
+                                        <dt>Business</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.dealer.controls.businessName.value ||
+                                                    '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Dealer</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.dealer.controls.dealerNumber.value ||
+                                                    '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Email</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.dealer.controls.dealerEmail.value ||
+                                                    '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>General length</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.dealer.controls.generalAdLength
+                                                    .value || '—'
+                                            }}
+                                            sec
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </section>
+                            <section>
+                                <header>
+                                    <div>
+                                        <span>02</span>
+                                        <h4>Contact information</h4>
+                                    </div>
+                                    <button type="button" (click)="goToStep(1)">Edit</button>
+                                </header>
+                                <dl>
+                                    <div>
+                                        <dt>Website</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.contact.controls.website.value || '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Phone</dt>
+                                        <dd>
+                                            {{ form.controls.contact.controls.phone.value || '—' }}
+                                        </dd>
+                                    </div>
+                                    <div class="wide">
+                                        <dt>Address</dt>
+                                        <dd>
+                                            {{
+                                                form.controls.contact.controls.address.value || '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </section>
+                            @for (
+                                config of [
+                                    {
+                                        step: 2,
+                                        title: 'Outside ad',
+                                        enabled: form.controls.outside.controls.enabled.value,
+                                        length: form.controls.outside.controls.length.value,
+                                        count: outsideMessages.length,
+                                    },
+                                    {
+                                        step: 3,
+                                        title: 'Inside ad',
+                                        enabled: form.controls.inside.controls.enabled.value,
+                                        length: form.controls.inside.controls.length.value,
+                                        count: insideMessages.length,
+                                    },
+                                    {
+                                        step: 4,
+                                        title: 'Vertical ads',
+                                        enabled: form.controls.vertical.controls.enabled.value,
+                                        length: null,
+                                        count: verticalVariations.length,
+                                    },
+                                ];
+                                track config.title
+                            ) {
+                                <section>
+                                    <header>
+                                        <div>
+                                            <span>0{{ config.step + 1 }}</span>
+                                            <h4>{{ config.title }}</h4>
+                                        </div>
+                                        <button type="button" (click)="goToStep(config.step)">
+                                            Edit
+                                        </button>
+                                    </header>
+                                    <div class="output-summary" [class.enabled]="config.enabled">
+                                        <span>{{ config.enabled ? '✓' : '—' }}</span>
+                                        <div>
+                                            <strong>{{
+                                                config.enabled ? 'Enabled' : 'Not requested'
+                                            }}</strong
+                                            ><small>
+                                                @if (config.enabled) {
+                                                    {{
+                                                        config.length
+                                                            ? config.length + ' seconds · '
+                                                            : ''
+                                                    }}{{ config.count }}
+                                                    {{
+                                                        config.title === 'Vertical ads'
+                                                            ? 'variation(s)'
+                                                            : 'message(s)'
+                                                    }}
+                                                }
+                                            </small>
+                                        </div>
+                                    </div>
+                                </section>
+                            }
+                            <section>
+                                <header>
+                                    <div>
+                                        <span>06</span>
+                                        <h4>Assets</h4>
+                                    </div>
+                                    <button type="button" (click)="goToStep(5)">Edit</button>
+                                </header>
+                                <div class="output-summary" [class.enabled]="assets().length">
+                                    <span>{{ assets().length }}</span>
+                                    <div>
+                                        <strong>{{ assets().length }} file(s) selected</strong
+                                        ><small>{{
+                                            form.controls.dealer.controls.fileShareLink.value
+                                                ? 'File share link included'
+                                                : 'No file share link'
+                                        }}</small>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                        <section class="payload-preview">
+                            <header>
+                                <div>
+                                    <span>&#123; &#125;</span>
+                                    <div>
+                                        <h4>Creatomate handoff preview</h4>
+                                        <p>
+                                            Structured preview only — no data is sent to Creatomate
+                                            yet.
+                                        </p>
+                                    </div>
+                                </div>
+                                <b>DEVELOPMENT</b>
+                            </header>
+                            <pre>{{ payloadPreview() | json }}</pre>
+                        </section>
+                        <label class="confirm-row"
+                            ><input
+                                type="checkbox"
+                                [checked]="reviewConfirmed()"
+                                (change)="reviewConfirmed.set($any($event.target).checked)" /><span
+                                >I've reviewed this creative brief and it is ready for Creatomate
+                                template mapping.</span
+                            ></label
+                        >
+                    </div>
+                }
+            }
+        </div>
+        <aside class="form-help">
+            <div class="help-visual">
+                <span>{{ currentStep() + 1 }}</span
+                ><i></i>
+            </div>
+            <h4>{{ steps[currentStep()].title }}</h4>
+            <p>{{ helpText() }}</p>
+            <div class="help-tip">
+                <strong>Good to know</strong
+                ><span>Your progress is automatically saved to this browser.</span>
+            </div>
+        </aside>
+    </section>
+    <footer class="form-footer">
+        <div class="form-footer__utilities">
+            <button type="button" class="button button--ghost" (click)="reset()">Reset form</button
+            ><button type="button" class="button button--secondary" (click)="saveDraft()">
+                Save as draft
+            </button>
+        </div>
+        <div class="form-footer__navigation">
+            @if (currentStep() > 0) {
+                <button type="button" class="button button--secondary" (click)="previous()">
+                    ← Previous
+                </button>
+            }
+            @if (currentStep() < 6) {
+                <button type="button" class="button button--primary" (click)="next()">
+                    Continue <span>→</span>
+                </button>
+            } @else {
+                <button
+                    type="submit"
+                    class="button button--success"
+                    [disabled]="!reviewConfirmed() || submitting()">
+                    ✓
+                    {{
+                        submitting()
+                            ? 'Submitting…'
+                            : isClientIntake()
+                              ? 'Submit creative brief'
+                              : 'Mark ready for Creatomate'
+                    }}
+                </button>
+            }
+        </div>
+    </footer>
+</form>
+@if (notice()) {
+    <div class="toast"><span>✓</span>{{ notice() }}</div>
+}
+
+<ng-template #messageEditor let-type let-title="title" let-array="array">
+    <div [formGroup]="type === 'outside' ? form.controls.outside : form.controls.inside">
+        <div class="messages-header">
+            <div>
+                <h4>{{ title }}</h4>
+                <p>Add, duplicate, and reorder the creative slides.</p>
+            </div>
+            <button type="button" (click)="addMessage(type)">＋ Add message</button>
+        </div>
+        <div [formArrayName]="'messages'" class="message-list">
+            @for (group of array.controls; track group.controls.id.value; let i = $index) {
+                <article [formGroupName]="i" class="message-card">
+                    <header>
+                        <span>{{ i + 1 }}</span>
+                        <div>
+                            <strong>Slide {{ i + 1 }}</strong
+                            ><small>Sort order {{ group.controls.sortOrder.value }}</small>
+                        </div>
+                        <div class="message-actions">
+                            <button
+                                type="button"
+                                title="Move up"
+                                [disabled]="i === 0"
+                                (click)="moveMessage(type, i, -1)">
+                                ↑</button
+                            ><button
+                                type="button"
+                                title="Move down"
+                                [disabled]="i === array.length - 1"
+                                (click)="moveMessage(type, i, 1)">
+                                ↓</button
+                            ><button
+                                type="button"
+                                title="Duplicate"
+                                (click)="duplicateMessage(type, i)">
+                                ▣</button
+                            ><button type="button" title="Delete" (click)="deleteMessage(type, i)">
+                                ×
+                            </button>
+                        </div>
+                    </header>
+                    <div class="message-fields">
+                        <label class="field field--wide"
+                            ><span
+                                >Headline <b>*</b
+                                ><em
+                                    >{{ group.controls.headline.value.length }}/{{
+                                        headlineLimit
+                                    }}</em
+                                ></span
+                            ><input
+                                formControlName="headline"
+                                placeholder="Enter a short, compelling headline" /></label
+                        ><label class="field field--wide"
+                            ><span
+                                >Supporting text
+                                <em
+                                    >{{ group.controls.supportingText.value.length }}/{{
+                                        supportingLimit
+                                    }}</em
+                                ></span
+                            ><textarea
+                                rows="2"
+                                formControlName="supportingText"
+                                placeholder="Optional supporting detail"></textarea></label
+                        ><label class="field"
+                            ><span>Display duration</span>
+                            <div class="suffix-input">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    formControlName="displayDuration" /><span>sec</span>
+                            </div></label
+                        ><label class="field"
+                            ><span>Sort order</span
+                            ><input type="number" formControlName="sortOrder"
+                        /></label>
+                    </div>
+                </article>
+            }
+        </div>
+    </div>
+</ng-template>

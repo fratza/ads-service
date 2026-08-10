@@ -6,6 +6,7 @@ import {
     CONNECT_SOURCES,
     FONT_SOURCES,
     IMAGE_SOURCES,
+    MEDIA_SOURCES,
     SCRIPT_SOURCES,
     STYLE_SOURCES,
 } from '../config/security.config.js';
@@ -73,6 +74,8 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
         `img-src 'self' data: ${IMAGE_SOURCES.join(' ')}`,
         `font-src 'self' data: ${FONT_SOURCES.join(' ')}`,
         `connect-src 'self' ${CONNECT_SOURCES.join(' ')}`,
+        `media-src 'self' blob: ${MEDIA_SOURCES.join(' ')}`,
+        "frame-src 'self' https://creatomate.com",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self'",

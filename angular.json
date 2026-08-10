@@ -17,7 +17,7 @@
                 "build": {
                     "builder": "@angular/build:application",
                     "options": {
-                        "polyfills": ["zone.js"],
+                        "polyfills": [],
                         "browser": "src/main.ts",
                         "tsConfig": "tsconfig.app.json",
                         "inlineStyleLanguage": "scss",
@@ -44,7 +44,8 @@
                             "form-data",
                             "proxy-from-env",
                             "follow-redirects",
-                            "lottie-web"
+                            "lottie-web",
+                            "@creatomate/preview"
                         ]
                     },
                     "configurations": {
@@ -57,8 +58,8 @@
                                 },
                                 {
                                     "type": "anyComponentStyle",
-                                    "maximumWarning": "2kb",
-                                    "maximumError": "4kb"
+                                    "maximumWarning": "28kb",
+                                    "maximumError": "32kb"
                                 }
                             ],
                             "outputHashing": "all"

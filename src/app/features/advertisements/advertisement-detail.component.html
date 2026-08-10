@@ -1,0 +1,646 @@
+@if (request(); as request) {
+    <section class="detail-hero">
+        <div class="business-logo">{{ request.businessName.slice(0, 2).toUpperCase() }}</div>
+        <div>
+            <div class="hero-meta">
+                <span>{{ request.id }}</span
+                ><app-status-badge [status]="request.status" />
+            </div>
+            <h2>{{ request.businessName }}</h2>
+            <p>
+                Dealer {{ request.dealerNumber }} · Last updated
+                {{ request.updatedAt | date: 'MMM d, y, h:mm a' }}
+            </p>
+        </div>
+        <div class="hero-actions">
+            <a routerLink="/advertisements">← All requests</a
+            ><a [routerLink]="['/advertisements', request.id, 'edit']" class="button"
+                >✎ Edit request</a
+            ><button
+                class="demo-render-button"
+                type="button"
+                [disabled]="rendering()"
+                (click)="startDemoRender()">
+                {{ rendering() ? '◌ Rendering demo…' : '▶ Run local demo' }}</button
+            ><button
+                class="real-render-button"
+                type="button"
+                [disabled]="realBusy()"
+                (click)="startRealRender()">
+                {{
+                    realBusy()
+                        ? '◌ Creatomate rendering…'
+                        : selectedTemplate()
+                          ? '◆ Render selected template'
+                          : '◆ Create real output'
+                }}
+            </button>
+        </div>
+    </section>
+    <div class="detail-layout">
+        <div class="detail-main">
+            <section class="panel template-gallery-trigger">
+                <header>
+                    <div>
+                        <h3>Creatomate templates</h3>
+                        <span>LIVE PROJECT</span>
+                    </div>
+                    <small>{{
+                        selectedTemplate()
+                            ? selectedTemplate()?.name + ' selected'
+                            : 'Select a template or use RenderScript'
+                    }}</small>
+                </header>
+                <div class="template-gallery-summary">
+                    @if (selectedTemplate(); as template) {
+                        <div class="template-gallery-summary-art">
+                            <app-creatomate-template-thumbnail
+                                [template]="template"
+                                [request]="request"
+                                [modifications]="templateValuesById()[template.id] ?? {}" />
+                        </div>
+                        <div>
+                            <strong>{{ template.name }}</strong
+                            ><small>{{
+                                template.tags.length
+                                    ? template.tags.join(' · ')
+                                    : 'Creatomate template'
+                            }}</small>
+                        </div>
+                    } @else {
+                        <p>
+                            Browse the live Creatomate project and pick a template, or import a
+                            client sheet to prefill one.
+                        </p>
+                    }
+                    <button
+                        type="button"
+                        class="open-template-gallery"
+                        (click)="templateGalleryOpen.set(true)">
+                        {{ selectedTemplate() ? 'Change template' : 'Browse templates' }}
+                    </button>
+                </div>
+            </section>
+            <section class="panel">
+                <header><h3>Dealer & business</h3></header>
+                <div class="field-grid">
+                    <div>
+                        <span>Dealer number</span><strong>{{ request.dealerNumber }}</strong>
+                    </div>
+                    <div>
+                        <span>Dealer email</span><strong>{{ request.dealerEmail }}</strong>
+                    </div>
+                    <div>
+                        <span>General ad length</span
+                        ><strong>{{ request.generalAdLength }} seconds</strong>
+                    </div>
+                    <div>
+                        <span>Logo available</span
+                        ><strong>{{ request.hasLogo ? 'Yes' : 'No' }}</strong>
+                    </div>
+                    <div class="wide">
+                        <span>Highlights & notes</span>
+                        <p>{{ request.highlights || 'No highlights provided.' }}</p>
+                    </div>
+                </div>
+            </section>
+            <section class="panel">
+                <header><h3>Contact information</h3></header>
+                <div class="field-grid">
+                    <div>
+                        <span>Website</span
+                        ><strong>{{ request.contactInformation.website || '—' }}</strong>
+                    </div>
+                    <div>
+                        <span>Phone</span
+                        ><strong>{{ request.contactInformation.phone || '—' }}</strong>
+                    </div>
+                    <div class="wide">
+                        <span>Address</span
+                        ><strong>{{ request.contactInformation.address || '—' }}</strong>
+                    </div>
+                </div>
+            </section>
+            <section class="panel">
+                <header><h3>Advertisement outputs</h3></header>
+                <div class="output-grid">
+                    <article [class.disabled]="!request.outsideAd.enabled">
+                        <span class="output-icon">▰</span>
+                        <div>
+                            <strong>Outside ad</strong
+                            ><small>{{
+                                request.outsideAd.enabled
+                                    ? request.outsideAd.length +
+                                      ' sec · ' +
+                                      request.outsideAd.messages.length +
+                                      ' messages'
+                                    : 'Not requested'
+                            }}</small>
+                        </div>
+                    </article>
+                    <article [class.disabled]="!request.insideAd.enabled">
+                        <span class="output-icon">▰</span>
+                        <div>
+                            <strong>Inside ad</strong
+                            ><small>{{
+                                request.insideAd.enabled
+                                    ? request.insideAd.length +
+                                      ' sec · ' +
+                                      request.insideAd.messages.length +
+                                      ' messages'
+                                    : 'Not requested'
+                            }}</small>
+                        </div>
+                    </article>
+                    <article [class.disabled]="!request.verticalAds.enabled">
+                        <span class="output-icon output-icon--vertical">▯</span>
+                        <div>
+                            <strong>Vertical ads</strong
+                            ><small>{{
+                                request.verticalAds.enabled
+                                    ? request.verticalAds.quantity + ' variation(s) · 9:16'
+                                    : 'Not requested'
+                            }}</small>
+                        </div>
+                    </article>
+                </div>
+            </section>
+            @if (selectedTemplate(); as template) {
+                @if (selectedTemplateValues(); as values) {
+                    <section class="panel selected-template-output">
+                        <header>
+                            <div>
+                                <h3>Selected template output</h3>
+                                <span>VALUES APPLIED</span>
+                            </div>
+                            <button type="button" (click)="openTemplatePreview(template)">
+                                Edit values
+                            </button>
+                        </header>
+                        <div class="selected-output-body">
+                            <div class="selected-output-player">
+                                <app-creatomate-template-thumbnail
+                                    [template]="template"
+                                    [request]="request"
+                                    [modifications]="values"
+                                    [interactive]="true" />
+                            </div>
+                            <div class="selected-output-copy">
+                                <strong>{{ template.name }}</strong>
+                                <p>
+                                    This live output uses the exact values that will be sent to
+                                    Creatomate.
+                                </p>
+                                <dl>
+                                    @for (entry of selectedTemplateValueEntries(); track entry[0]) {
+                                        <div>
+                                            <dt>{{ entry[0] }}</dt>
+                                            <dd>{{ entry[1] }}</dd>
+                                        </div>
+                                    }
+                                </dl>
+                            </div>
+                        </div>
+                    </section>
+                }
+                <section class="panel selected-template-source">
+                    <header>
+                        <div>
+                            <h3>Selected template source</h3>
+                            <span>JSON</span>
+                        </div>
+                        <button
+                            type="button"
+                            [attr.aria-expanded]="templateSourceExpanded()"
+                            (click)="toggleTemplateSource()">
+                            {{ templateSourceExpanded() ? 'Hide source' : 'Show source' }}
+                        </button>
+                    </header>
+                    @if (templateSourceExpanded()) {
+                        <div class="template-source-body">
+                            @if (templateSourceLoading()) {
+                                <div class="template-source-state">
+                                    <i></i><span>Loading {{ template.name }} source…</span>
+                                </div>
+                            } @else if (templateSourceError()) {
+                                <div class="template-source-error">
+                                    <strong>Source unavailable</strong
+                                    ><span>{{ templateSourceError() }}</span>
+                                </div>
+                            } @else if (selectedTemplateSource()) {
+                                <pre><code>{{ selectedTemplateSourceJson() }}</code></pre>
+                            } @else {
+                                <div class="template-source-state">
+                                    <span>Select the template again to load its source.</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+            @if (realRender() || realError() || realBusy()) {
+                <section class="panel real-render">
+                    <header>
+                        <div>
+                            <h3>Real Creatomate output</h3>
+                            <span>LIVE API</span>
+                        </div>
+                        <small>{{ realOutput() | uppercase }}</small>
+                    </header>
+                    <div class="real-render-body">
+                        @if (realError()) {
+                            <div class="real-error">
+                                <strong>Creatomate setup required</strong>
+                                <p>{{ realError() }}</p>
+                                <code>CREATOMATE_API_KEY=your_project_api_key</code>
+                            </div>
+                        }
+                        @if (realRender(); as render) {
+                            <div class="real-status">
+                                <div>
+                                    <span>Render ID</span><strong>{{ render.id }}</strong>
+                                </div>
+                                <b [class]="render.status">{{ render.status }}</b>
+                            </div>
+                            @if (render.status === 'succeeded' && render.url) {
+                                <video
+                                    controls
+                                    playsinline
+                                    [poster]="render.snapshot_url || ''"
+                                    [src]="render.url"></video
+                                ><a
+                                    class="download-output"
+                                    [href]="render.url"
+                                    target="_blank"
+                                    rel="noopener"
+                                    >Open finished MP4 ↗</a
+                                >
+                            } @else {
+                                <div class="live-progress">
+                                    <i></i
+                                    ><span
+                                        >Creatomate is processing the {{ realOutput() }} output.
+                                        This page updates automatically.</span
+                                    >
+                                </div>
+                            }
+                        }
+                    </div>
+                </section>
+            }
+            @if (jobs().length) {
+                <section class="panel demo-jobs">
+                    <header>
+                        <div>
+                            <h3>Creatomate demo renders</h3>
+                            <span>LOCAL SIMULATION</span>
+                        </div>
+                        <small>{{ jobs().length }} output(s)</small>
+                    </header>
+                    <div class="job-list">
+                        @for (job of jobs(); track job.id) {
+                            <article [class.complete]="job.status === 'completed'">
+                                <div
+                                    class="job-preview"
+                                    [class.vertical]="job.output === 'vertical'">
+                                    <span>{{ request.businessName }}</span
+                                    ><strong>{{ job.output | uppercase }}</strong>
+                                </div>
+                                <div class="job-copy">
+                                    <div>
+                                        <strong>{{ job.label }}</strong
+                                        ><span>{{ job.templateId }}</span>
+                                    </div>
+                                    <b [class]="job.status">{{ job.status }}</b>
+                                    <div class="progress">
+                                        <i [style.width.%]="job.progress"></i>
+                                    </div>
+                                    <small
+                                        >{{ job.progress }}% ·
+                                        {{
+                                            job.status === 'completed'
+                                                ? 'Demo output ready'
+                                                : 'Simulating Creatomate processing'
+                                        }}</small
+                                    >
+                                </div>
+                                @if (job.status === 'completed') {
+                                    <button type="button" (click)="previewJob.set(job)">
+                                        View output
+                                    </button>
+                                }
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+            @if (request.outsideAd.enabled || request.insideAd.enabled) {
+                <section class="panel">
+                    <header><h3>Creative messages</h3></header>
+                    <div class="messages">
+                        @for (
+                            message of request.outsideAd.messages.concat(request.insideAd.messages);
+                            track message.id;
+                            let i = $index
+                        ) {
+                            <div>
+                                <span>{{ i + 1 }}</span>
+                                <div>
+                                    <strong>{{ message.headline }}</strong
+                                    ><small>{{
+                                        message.supportingText || 'No supporting text'
+                                    }}</small>
+                                </div>
+                                <b>{{ message.displayDuration }}s</b>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+        <aside>
+            <section class="panel status-card">
+                <header><h3>Request timeline</h3></header>
+                <div class="timeline">
+                    <div class="done">
+                        <i></i><strong>Creative brief created</strong
+                        ><span>{{ request.createdAt | date: 'MMM d, h:mm a' }}</span>
+                    </div>
+                    <div class="done">
+                        <i></i><strong>Details updated</strong
+                        ><span>{{ request.updatedAt | date: 'MMM d, h:mm a' }}</span>
+                    </div>
+                    <div [class.done]="request.status !== 'draft'">
+                        <i></i><strong>Ready for Creatomate</strong
+                        ><span>{{
+                            request.status === 'draft'
+                                ? 'Waiting for review'
+                                : 'Brief prepared for template mapping'
+                        }}</span>
+                    </div>
+                    <div [class.done]="request.status === 'completed'">
+                        <i></i><strong>Rendering complete</strong
+                        ><span>{{
+                            request.status === 'completed'
+                                ? 'Output ready'
+                                : 'Future integration step'
+                        }}</span>
+                    </div>
+                </div>
+            </section>
+            <section class="panel payload-card">
+                <header>
+                    <h3>Creatomate handoff preview</h3>
+                    <div class="payload-card-actions">
+                        <span>PREVIEW</span>
+                        <button type="button" class="copy-payload" (click)="copyPayload()">
+                            {{ payloadCopied() ? '✓ Copied' : 'Copy JSON' }}
+                        </button>
+                    </div>
+                </header>
+                <pre [innerHTML]="payloadHtml()"></pre>
+                <p>
+                    This structured brief is ready for a later template-mapping step. No data has
+                    been sent to Creatomate.
+                </p>
+            </section>
+        </aside>
+    </div>
+    @if (templateGalleryOpen()) {
+        <div
+            class="template-gallery-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Browse Creatomate templates">
+            <button
+                class="modal-backdrop"
+                type="button"
+                aria-label="Close template browser"
+                (click)="templateGalleryOpen.set(false)"></button>
+            <section class="panel template-gallery">
+                <header>
+                    <div class="template-gallery-heading">
+                        <div>
+                            <h3>Creatomate templates</h3>
+                            <span>LIVE PROJECT</span>
+                        </div>
+                        <small>{{
+                            selectedTemplate()
+                                ? selectedTemplate()?.name + ' selected'
+                                : 'Select a template or use RenderScript'
+                        }}</small>
+                    </div>
+                    <button
+                        type="button"
+                        class="close-template-gallery"
+                        aria-label="Close template browser"
+                        (click)="templateGalleryOpen.set(false)">
+                        ×
+                    </button>
+                </header>
+                @if (templatesLoading()) {
+                    <div class="template-loading">
+                        <i></i><span>Loading templates from Creatomate…</span>
+                    </div>
+                } @else if (templatesError()) {
+                    <div class="template-error">
+                        <strong>Templates unavailable</strong><span>{{ templatesError() }}</span>
+                    </div>
+                } @else if (templates().length) {
+                    <div class="creatomate-template-grid">
+                        @for (template of templates(); track template.id) {
+                            <button
+                                type="button"
+                                [class.selected]="selectedTemplateId() === template.id"
+                                (click)="openTemplatePreview(template)">
+                                <div class="template-art">
+                                    <app-creatomate-template-thumbnail
+                                        [template]="template"
+                                        [request]="request"
+                                        [modifications]="
+                                            templateValuesById()[template.id] ?? {}
+                                        " /><i>▶</i>
+                                </div>
+                                <strong>{{ template.name }}</strong
+                                ><small>{{
+                                    template.tags.length
+                                        ? template.tags.join(' · ')
+                                        : 'Creatomate template'
+                                }}</small
+                                ><b>{{
+                                    templateValuesById()[template.id]
+                                        ? '✓ Values applied'
+                                        : selectedTemplateId() === template.id
+                                          ? '▶ Preview selected template'
+                                          : '▶ Preview template'
+                                }}</b>
+                            </button>
+                        }
+                    </div>
+                } @else {
+                    <div class="template-empty">
+                        <strong>No templates found</strong
+                        ><span
+                            >Create a template in this Creatomate project, then refresh this
+                            page.</span
+                        >
+                    </div>
+                }
+                <p class="template-mapping-note">
+                    <strong>Data mapping:</strong> For automatic client content, use dynamic
+                    elements named Business-Name, Main-Headline, Supporting-Text, Contact, and
+                    Website.
+                </p>
+            </section>
+        </div>
+    }
+    @if (assetPromptOpen()) {
+        <div
+            class="asset-import-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add imported assets">
+            <div class="modal-backdrop"></div>
+            <section>
+                <header>
+                    <div>
+                        <span>IMPORT STEP 2</span>
+                        <strong>Add the images and video for this content</strong>
+                    </div>
+                </header>
+                <div class="asset-import-body">
+                    <p>
+                        Assets upload to Supabase, then GPT-5.4 nano matches them to compatible
+                        image and video elements in the selected template.
+                    </p>
+                    <div class="asset-upload-actions">
+                        <input
+                            #assetInput
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+                            multiple
+                            hidden
+                            (change)="uploadImportedAssets($event)" />
+                        <button
+                            type="button"
+                            [disabled]="assetUploading()"
+                            (click)="assetInput.click()">
+                            Upload assets
+                        </button>
+                    </div>
+                    @if (assetUploading()) {
+                        <div class="asset-upload-state">
+                            <i></i><span>Uploading to Supabase…</span>
+                        </div>
+                    }
+                    @if (assetUploadMessage()) {
+                        <p class="asset-upload-message">{{ assetUploadMessage() }}</p>
+                    }
+                    @if (request.assets.length) {
+                        <div class="imported-assets">
+                            @for (asset of request.assets; track asset.id) {
+                                <article>
+                                    @if (assetPreviewable(asset)) {
+                                        <img [src]="asset.previewUrl" [alt]="asset.name" />
+                                    } @else {
+                                        <span>{{
+                                            asset.type.startsWith('video/') ? '▶' : '◆'
+                                        }}</span>
+                                    }
+                                    <div>
+                                        <strong>{{ asset.name }}</strong
+                                        ><small>{{ asset.category }}</small>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="remove-imported-asset"
+                                        [disabled]="assetUploading()"
+                                        (click)="removeImportedAsset(asset)">
+                                        Remove
+                                    </button>
+                                </article>
+                            }
+                        </div>
+                    }
+                </div>
+                <footer>
+                    <button
+                        type="button"
+                        class="skip-assets"
+                        [disabled]="assetUploading()"
+                        (click)="continueAfterAssetUpload()">
+                        Skip for now
+                    </button>
+                    <button
+                        type="button"
+                        class="continue-assets"
+                        [disabled]="assetUploading()"
+                        (click)="continueAfterAssetUpload()">
+                        Continue to AI mapping
+                    </button>
+                </footer>
+            </section>
+        </div>
+    }
+    @if (previewJob(); as job) {
+        <div class="demo-modal" role="dialog" aria-modal="true" aria-label="Demo render preview">
+            <button
+                class="modal-backdrop"
+                type="button"
+                aria-label="Close preview"
+                (click)="previewJob.set(null)"></button>
+            <section>
+                <header>
+                    <div>
+                        <span>DEMO OUTPUT</span><strong>{{ job.label }}</strong>
+                    </div>
+                    <button type="button" aria-label="Close preview" (click)="previewJob.set(null)">
+                        ×
+                    </button>
+                </header>
+                <div class="mock-video" [class.vertical]="job.output === 'vertical'">
+                    <span>{{ request.businessName }}</span>
+                    <h3>
+                        {{
+                            request.outsideAd.messages[0]?.headline ||
+                                request.insideAd.messages[0]?.headline ||
+                                'Your message goes here'
+                        }}
+                    </h3>
+                    <p>
+                        {{ request.contactInformation.website || request.contactInformation.phone }}
+                    </p>
+                    <i>▶</i>
+                </div>
+                <footer>
+                    <span>Generated by the local Creatomate simulator</span
+                    ><strong>00:{{ request.generalAdLength || 15 }}</strong>
+                </footer>
+            </section>
+        </div>
+    }
+    @if (previewTemplate(); as template) {
+        <app-creatomate-template-preview
+            [template]="template"
+            [templateSource]="selectedTemplateSource() ?? null"
+            [initialModifications]="templateModifications()"
+            [aiSuggestionsAvailable]="aiSuggestionsAvailable()"
+            [aiSuggestionsInjected]="aiSuggestionsInjected(template.id)"
+            [aiSuggestionsLoading]="templateMappingBusy()"
+            [aiSuggestionsError]="templateMappingError()"
+            (closed)="previewTemplate.set(null)"
+            (valuesApplied)="applyTemplateValues($event)"
+            (sourceEdited)="applyEditedSource($event)"
+            (aiSuggestionsRequested)="injectAiSuggestions(template)"
+            (revertRequested)="revertAiSuggestions(template)" />
+    }
+    @if (templateMappingBusy()) {
+        <app-ai-mapping-progress />
+    }
+} @else {
+    <section class="not-found">
+        <h2>Request not found</h2>
+        <p>This local request may have been removed.</p>
+        <a routerLink="/advertisements">Return to requests</a>
+    </section>
+}

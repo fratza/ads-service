@@ -1,0 +1,2 @@
+@ntv360:registry=https://npm-dev.n-compass.online/
+//npm-dev.n-compass.online/:_authToken=${NPM_TOKEN}

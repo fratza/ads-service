@@ -1,5 +1,6 @@
 /** Express Imports */
 import { NextFunction, Request, Response } from 'express';
+import { timingSafeEqual } from 'node:crypto';
 
 /** Local Imports */
 import { SERVER_CONFIG } from '../config/environment.config.js';
@@ -38,4 +39,23 @@ export const validateOrigin = (req: Request, res: Response, next: NextFunction):
         error: 'forbidden',
         errorDescription: 'Request origin not allowed',
     });
+};
+
+const apiKeyMatches = (configuredKey: string | undefined, suppliedKey: string | undefined): boolean => {
+    if (!configuredKey || !suppliedKey) return false;
+    const expected = Buffer.from(configuredKey);
+    const supplied = Buffer.from(suppliedKey);
+    return expected.length === supplied.length && timingSafeEqual(expected, supplied);
+};
+
+/**
+ * Browser requests retain origin protection. Trusted external integrations may
+ * authenticate with ADVERTISEMENT_INGESTION_API_KEY via the x-api-key header.
+ */
+export const validateOriginOrApiKey = (req: Request, res: Response, next: NextFunction): void => {
+    if (apiKeyMatches(process.env['ADVERTISEMENT_INGESTION_API_KEY'], req.get('x-api-key'))) {
+        next();
+        return;
+    }
+    validateOrigin(req, res, next);
 };

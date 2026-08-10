@@ -1,0 +1,186 @@
+<section class="panel jobs-table">
+    <header>
+        <div>
+            <h2>Generated batches</h2>
+            <p>Live status of every trivia batch triggered from this page.</p>
+        </div>
+        <button type="button" class="open-generate-modal" (click)="openGenerateModal()">
+            + Generate trivia videos
+        </button>
+    </header>
+    @if (hasActiveRequest()) {
+        <p class="status status--info inline-status">
+            A trivia batch is already generating. You can still start another — just keep an eye
+            on API usage.
+        </p>
+    }
+    @if (loadingRequests()) {
+        <div class="table-loading">
+            <i></i>
+            <span>Loading generated batches…</span>
+        </div>
+    } @else if (!requests().length) {
+        <div class="table-empty">
+            <strong>No trivia batches yet</strong>
+            <span>Click "Generate trivia videos" to start your first batch.</span>
+        </div>
+    } @else {
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Trivia ID</th>
+                        <th>Category</th>
+                        <th>Requested</th>
+                        <th>Output</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (request of requests(); track request.requestId) {
+                        <tr>
+                            <td>
+                                <span class="status-pill" [class]="statusLabel(request)">
+                                    @if (!isTerminal(request)) {
+                                        <i></i>
+                                    }
+                                    {{ statusLabel(request) }}
+                                </span>
+                            </td>
+                            <td class="mono" [title]="request.job?.id ?? ''">
+                                {{
+                                    request.job?.id ? (request.job?.id | slice: 0 : 8) + '…' : '—'
+                                }}
+                            </td>
+                            <td>
+                                <span class="category-name">{{ request.category }}</span
+                                ><small class="category-quantity"
+                                    >{{ request.quantity }} video(s)</small
+                                >
+                            </td>
+                            <td class="cell-note">
+                                {{
+                                    request.createdAt
+                                        ? (request.createdAt | date: 'MMM d, h:mm a')
+                                        : '—'
+                                }}
+                            </td>
+                            <td class="output">
+                                @if (request.state === 'error') {
+                                    <span
+                                        class="cell-note cell-note--error"
+                                        [title]="request.error || ''"
+                                        >{{ request.error || 'Failed to start.' }}</span
+                                    >
+                                } @else if (
+                                    request.job && successStatuses.includes(request.job.status)
+                                ) {
+                                    @if (request.job.downloadUrl) {
+                                        <a
+                                            [href]="request.job.downloadUrl"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="download-link">
+                                            <svg viewBox="0 0 24 24">
+                                                <path
+                                                    d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" />
+                                            </svg>
+                                            Download video
+                                        </a>
+                                    } @else {
+                                        <span class="cell-note">Ready</span>
+                                    }
+                                } @else if (request.job?.status === 'failed') {
+                                    <span
+                                        class="cell-note cell-note--error"
+                                        [title]="request.job?.error || ''"
+                                        >{{ request.job?.error || 'Rendering failed.' }}</span
+                                    >
+                                } @else if (request.job) {
+                                    <div class="cell-progress">
+                                        <div class="mini-progress">
+                                            <i
+                                                [style.width.%]="
+                                                    progressPercent(request.job.progress)
+                                                "></i>
+                                        </div>
+                                        <span class="cell-note"
+                                            >{{ progressPercent(request.job.progress) }}%</span
+                                        >
+                                    </div>
+                                } @else {
+                                    <span class="cell-note">Generating background videos…</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (generateModalOpen()) {
+    <div
+        class="generate-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Generate trivia videos">
+        <button
+            class="modal-backdrop"
+            type="button"
+            aria-label="Close"
+            (click)="closeGenerateModal()"></button>
+        <section class="panel">
+            <header>
+                <div>
+                    <h2>Generate trivia videos</h2>
+                    <p>
+                        Pulls unmapped trivia questions from a category and kicks off the n8n
+                        workflow that generates and uploads a background video for each one, then
+                        compiles them into a single reveal video.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    class="close-modal"
+                    aria-label="Close"
+                    [disabled]="submitting()"
+                    (click)="closeGenerateModal()">
+                    ×
+                </button>
+            </header>
+            <form (submit)="$event.preventDefault(); generate()">
+                <fieldset [disabled]="submitting()">
+                    <div class="field-grid">
+                        <label>
+                            <span>Category</span>
+                            <select
+                                [value]="category()"
+                                (change)="setCategory($any($event.target).value)">
+                                @for (option of categories; track option) {
+                                    <option [value]="option">{{ option }}</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            <span>Quantity</span>
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                [value]="quantity()"
+                                (input)="setQuantity($any($event.target).value)" />
+                        </label>
+                    </div>
+                    <button type="submit" [disabled]="quantity() < 1">
+                        {{ submitting() ? 'Starting workflow…' : 'Generate trivia videos' }}
+                    </button>
+                </fieldset>
+                @if (error()) {
+                    <p class="status status--error">{{ error() }}</p>
+                }
+            </form>
+        </section>
+    </div>
+}

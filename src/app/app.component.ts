@@ -9,5 +9,5 @@ import { RouterOutlet } from '@angular/router';
     styleUrl: './app.component.scss',
 })
 export class AppComponent {
-    title = 'Welcome to NG-Scaffolding!';
+    title = 'NTV360 Ad Studio';
 }

@@ -14,16 +14,16 @@ describe('AppComponent', () => {
         expect(app).toBeTruthy();
     });
 
-    it(`should have the 'host-install-setup' title`, () => {
+    it(`should have the NTV360 Ad Studio title`, () => {
         const fixture = TestBed.createComponent(AppComponent);
         const app = fixture.componentInstance;
-        expect(app.title).toEqual('host-install-setup');
+        expect(app.title).toEqual('NTV360 Ad Studio');
     });
 
-    it('should render title', () => {
+    it('should render the application router outlet', () => {
         const fixture = TestBed.createComponent(AppComponent);
         fixture.detectChanges();
         const compiled = fixture.nativeElement as HTMLElement;
-        expect(compiled.querySelector('h1')?.textContent).toContain('host-install-setup');
+        expect(compiled.querySelector('router-outlet')).toBeTruthy();
     });
 });

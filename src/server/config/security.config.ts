@@ -94,6 +94,10 @@ export const CONNECT_SOURCES = [
     'https://ka-p.fontawesome.com',
 ];
 
+export const MEDIA_SOURCES = [
+    'https://cdn.creatomate.com',
+];
+
 /**
  * Build CSP directive string from sources array.
  *

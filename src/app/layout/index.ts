@@ -3,5 +3,4 @@
  * Export all layout components.
  */
 
-export * from './public';
-export * from './authenticated';
+export * from './app-shell/app-shell.component';
