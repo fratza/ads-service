@@ -22,6 +22,38 @@
         </div>
     </section>
 }
+@if (isSheetImportOnly()) {
+    <section class="form-intro">
+        <div>
+            <span class="form-kicker">NEW REQUEST</span>
+            <h2>Import advertisement requests</h2>
+            <p>Paste a public Google Sheets link to create advertisement requests from your sheet.</p>
+        </div>
+    </section>
+
+    <section class="sheet-import-bar">
+        <div>
+            <strong>Import from Google Sheets</strong>
+            <span>Paste a public sharing link to import your advertisement requests.</span>
+        </div>
+        <label>
+            <span class="sr-only">Google Sheets URL</span>
+            <input
+                type="url"
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                [value]="googleSheetUrl()"
+                (input)="googleSheetUrl.set($any($event.target).value)"
+                (keydown.enter)="$event.preventDefault(); importGoogleSheet()" />
+        </label>
+        <button
+            type="button"
+            class="button button--primary"
+            [disabled]="importing() || !googleSheetUrl().trim()"
+            (click)="importGoogleSheet()">
+            {{ importing() ? 'Importing…' : 'Import sheet' }}
+        </button>
+    </section>
+} @else {
 <section class="form-intro">
     <div>
         <span class="form-kicker">{{
@@ -980,6 +1012,7 @@
         </div>
     </footer>
 </form>
+}
 @if (notice()) {
     <div class="toast"><span>✓</span>{{ notice() }}</div>
 }

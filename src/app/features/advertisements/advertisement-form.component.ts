@@ -200,6 +200,9 @@ export class AdvertisementFormComponent {
     readonly isEdit = computed(() => Boolean(this.route.snapshot.paramMap.get('id')));
     readonly clientToken = this.route.snapshot.paramMap.get('token');
     readonly isClientIntake = computed(() => Boolean(this.clientToken));
+    readonly isSheetImportOnly = computed(
+        () => !this.isClientIntake() && !this.isEdit() && !this.importIssues().length,
+    );
     readonly payloadPreview = signal<ReturnType<CreatomatePayloadService['createPreview']> | null>(
         null,
     );
