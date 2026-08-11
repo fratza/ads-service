@@ -3,6 +3,7 @@
  * Export all feature modules from their respective folders.
  */
 export * from './advertisements';
+export * from './revisions';
 export * from './dashboard';
 export * from './settings';
 export * from './trivia';

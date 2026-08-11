@@ -18,6 +18,7 @@ export const routes: Routes = [
             { path: 'advertisements/new', loadComponent: () => import('@features/advertisements').then((module) => module.AdvertisementFormComponent) },
             { path: 'advertisements/:id/edit', loadComponent: () => import('@features/advertisements').then((module) => module.AdvertisementFormComponent) },
             { path: 'advertisements/:id', loadComponent: () => import('@features/advertisements').then((module) => module.AdvertisementDetailComponent) },
+            { path: 'revisions', loadComponent: () => import('@features/revisions').then((module) => module.RevisionWorkspaceComponent) },
             { path: 'trivia', loadComponent: () => import('@features/trivia').then((module) => module.TriviaComponent) },
             { path: 'settings', loadComponent: () => import('@features/settings').then((module) => module.SettingsComponent) },
             { path: '', pathMatch: 'full', redirectTo: 'dashboard' },

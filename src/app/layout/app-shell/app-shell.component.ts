@@ -17,6 +17,7 @@ export class AppShellComponent {
         { label: 'Dashboard', route: '/dashboard', icon: 'grid', exact: true },
         { label: 'Advertisement Requests', route: '/advertisements', icon: 'ads', exact: true },
         { label: 'Create Advertisement', route: '/advertisements/new', icon: 'plus' },
+        { label: 'Revisions', route: '/revisions', icon: 'revision' },
         { label: 'Trivia', route: '/trivia', icon: 'trivia' },
         { label: 'Settings', route: '/settings', icon: 'settings' },
     ];
@@ -28,6 +29,7 @@ export class AppShellComponent {
             else if (/\/advertisements\/[^/]+/.test(url)) { this.pageTitle.set('Request details'); this.breadcrumb.set('Details'); }
             else if (url.startsWith('/advertisements')) { this.pageTitle.set('Advertisement requests'); this.breadcrumb.set('All requests'); }
             else if (url.startsWith('/trivia')) { this.pageTitle.set('Trivia'); this.breadcrumb.set('Video generator'); }
+            else if (url.startsWith('/revisions')) { this.pageTitle.set('Video revisions'); this.breadcrumb.set('Creatomate studio'); }
             else if (url.startsWith('/settings')) { this.pageTitle.set('Settings'); this.breadcrumb.set('Workspace'); }
             else { this.pageTitle.set('Dashboard'); this.breadcrumb.set('Overview'); }
             this.sidebarOpen.set(false);
