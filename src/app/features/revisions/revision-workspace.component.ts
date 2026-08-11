@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AdvertisementRequestService, CreatomateTemplate, RealCreatomateService } from '@core/services';
+import { StorageService } from '@core/services/storage/storage.service';
 import { CreatomateTemplateThumbnailComponent } from '@features/advertisements';
 
 type EditorTab = 'properties' | 'playground' | 'script';
@@ -11,6 +12,8 @@ interface EditableLayer {
     path: Array<string | number>;
 }
 
+const SAVED_REVISIONS_KEY = 'ntv-creatomate-revisions';
+
 @Component({
     selector: 'app-revision-workspace',
     standalone: true,
@@ -21,10 +24,12 @@ interface EditableLayer {
 export class RevisionWorkspaceComponent {
     private readonly creatomate = inject(RealCreatomateService);
     private readonly requestService = inject(AdvertisementRequestService);
+    private readonly storage = inject(StorageService);
     readonly tab = signal<EditorTab>('properties');
     readonly templates = signal<CreatomateTemplate[]>([]);
     readonly selectedTemplateId = signal('');
     readonly source = signal<Record<string, unknown> | null>(null);
+    readonly savedBaseline = signal<Record<string, unknown> | null>(null);
     readonly loading = signal(true);
     readonly error = signal('');
     readonly prompt = signal('');
@@ -33,7 +38,7 @@ export class RevisionWorkspaceComponent {
     readonly aiError = signal('');
     readonly copied = signal(false);
     readonly selectedLayerId = signal('');
-    readonly chooserPreviewId = signal('');
+    readonly saveMessage = signal('');
     readonly selectedTemplate = computed(() =>
         this.templates().find((template) => template.id === this.selectedTemplateId()),
     );
@@ -55,6 +60,9 @@ export class RevisionWorkspaceComponent {
         }
         return modifications;
     });
+    readonly hasChanges = computed(() =>
+        JSON.stringify(this.source()) !== JSON.stringify(this.savedBaseline()),
+    );
 
     constructor() {
         void this.loadTemplates();
@@ -64,13 +72,18 @@ export class RevisionWorkspaceComponent {
         this.selectedTemplateId.set(templateId);
         this.selectedLayerId.set('');
         this.source.set(null);
+        this.savedBaseline.set(null);
         this.error.set('');
         this.aiSummary.set('');
         if (!templateId) return;
         this.loading.set(true);
         try {
             const detail = await this.creatomate.getTemplate(templateId);
-            this.source.set(structuredClone(detail.source));
+            const saved = this.savedRevisions()[templateId];
+            const initialSource = saved ?? detail.source;
+            this.source.set(structuredClone(initialSource));
+            this.savedBaseline.set(structuredClone(initialSource));
+            this.saveMessage.set(saved ? 'Loaded saved local revision.' : '');
         } catch (error) {
             this.error.set(this.creatomate.errorMessage(error));
         } finally {
@@ -130,14 +143,40 @@ export class RevisionWorkspaceComponent {
         }
     }
 
+    saveRevision(): void {
+        const templateId = this.selectedTemplateId();
+        const source = this.source();
+        if (!templateId || !source) return;
+        this.storage.set(SAVED_REVISIONS_KEY, {
+            ...this.savedRevisions(),
+            [templateId]: source,
+        });
+        this.savedBaseline.set(structuredClone(source));
+        this.saveMessage.set('Revision saved locally. The original Creatomate template remains unchanged.');
+    }
+
+    revertChanges(): void {
+        const baseline = this.savedBaseline();
+        if (!baseline) return;
+        this.source.set(structuredClone(baseline));
+        this.aiSummary.set('');
+        this.aiError.set('');
+        this.saveMessage.set('Reverted unsaved changes.');
+    }
+
     private async loadTemplates(): Promise<void> {
         try {
-            this.templates.set(await this.creatomate.listTemplates());
+            const templates = await this.creatomate.listTemplates();
+            this.templates.set(templates);
         } catch (error) {
             this.error.set(this.creatomate.errorMessage(error));
         } finally {
             this.loading.set(false);
         }
+    }
+
+    private savedRevisions(): Record<string, Record<string, unknown>> {
+        return this.storage.get<Record<string, Record<string, unknown>>>(SAVED_REVISIONS_KEY) ?? {};
     }
 
     private findLayers(source: Record<string, unknown> | null): EditableLayer[] {

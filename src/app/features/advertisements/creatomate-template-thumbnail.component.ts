@@ -24,15 +24,22 @@ export class CreatomateTemplateThumbnailComponent implements AfterViewInit, OnDe
     readonly template = input.required<CreatomateTemplate>();
     readonly request = input.required<AdvertisementRequest>();
     readonly modifications = input<Record<string, string>>({});
+    readonly templateSource = input<Record<string, unknown> | null>(null);
     readonly interactive = input(false);
     readonly loading = signal(true);
     readonly error = signal(false);
+    private readonly templateLoaded = signal(false);
 
     constructor() {
         effect(() => {
             const modifications = this.modifications();
-            if (!this.preview || !Object.keys(modifications).length) return;
-            void this.updatePreview(modifications);
+            const source = this.templateSource();
+            if (!this.preview || !this.templateLoaded()) return;
+            if (source) {
+                void this.updateSource(source);
+            } else if (Object.keys(modifications).length) {
+                void this.updatePreview(modifications);
+            }
         });
     }
 
@@ -58,6 +65,12 @@ export class CreatomateTemplateThumbnailComponent implements AfterViewInit, OnDe
         if (!this.preview) return;
         try {
             await this.preview.loadTemplate(this.template().id);
+            this.templateLoaded.set(true);
+            const source = this.templateSource();
+            if (source) {
+                await this.updateSource(source);
+                return;
+            }
             const request = this.request();
             const message = request.outsideAd.messages[0] ?? request.insideAd.messages[0];
             const defaults = {
@@ -69,6 +82,19 @@ export class CreatomateTemplateThumbnailComponent implements AfterViewInit, OnDe
             };
             const modifications = this.modifications();
             await this.updatePreview(Object.keys(modifications).length ? modifications : defaults);
+            this.loading.set(false);
+        } catch {
+            this.error.set(true);
+            this.loading.set(false);
+        }
+    }
+
+    private async updateSource(source: Record<string, unknown>): Promise<void> {
+        if (!this.preview) return;
+        try {
+            await this.preview.setSource(source);
+            await this.preview.setControls(this.interactive());
+            await this.preview.setTime(0);
             this.loading.set(false);
         } catch {
             this.error.set(true);
