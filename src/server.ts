@@ -16,6 +16,8 @@ import { validateOrigin, validateOriginOrApiKey } from './server/middleware/orig
 import { securityHeaders } from './server/middleware/security.middleware.js';
 import { advertisementRequestRoutes, resourceRoutes } from './server/routes/index.js';
 import { httpClient } from './server/services/http-client.service.js';
+import { advertisementIdeaService } from './server/services/advertisement-idea.service.js';
+import { storyboardImageService } from './server/services/storyboard-image.service.js';
 import { templateJsonEditorService } from './server/services/template-json-editor.service.js';
 import { templateMappingService } from './server/services/template-mapping.service.js';
 
@@ -186,6 +188,81 @@ app.post('/api/creatomate/template-mappings', validateOrigin, async (req, res) =
             error: 'skillhub_mapping_failed',
             errorDescription:
                 'SkillHub could not suggest template mappings. The standard mapper is still available.',
+        });
+    }
+});
+
+app.post('/api/advertisement-ideas/generate', validateOrigin, async (req, res) => {
+    const body = req.body as { context?: unknown };
+    if (typeof body.context !== 'string' || !body.context.trim()) {
+        res.status(400).json({
+            error: 'invalid_advertisement_idea_request',
+            errorDescription: 'Advertisement context is required.',
+        });
+        return;
+    }
+    try {
+        res.json(await advertisementIdeaService.generate(body.context));
+    } catch (error) {
+        const message = (error as Error).message;
+        if (message === 'OPENAI_NOT_CONFIGURED') {
+            res.status(503).json({
+                error: 'openai_not_configured',
+                errorDescription: 'Add OPENAI_API_KEY to the server .env file and restart the app.',
+            });
+            return;
+        }
+        if (message === 'OPENAI_EMPTY_CONTEXT') {
+            res.status(400).json({
+                error: 'empty_context',
+                errorDescription: 'Add some advertisement details before generating an idea.',
+            });
+            return;
+        }
+        console.error('[OpenAI] Unable to generate advertisement idea', error);
+        res.status(502).json({
+            error: 'openai_idea_failed',
+            errorDescription: 'The advertisement direction could not be generated. Try again.',
+        });
+    }
+});
+
+app.post('/api/storyboard-images/generate', validateOrigin, async (req, res) => {
+    const body = req.body as { prompt?: unknown; output?: unknown };
+    if (
+        typeof body.prompt !== 'string' ||
+        !body.prompt.trim() ||
+        !['outside', 'inside', 'vertical'].includes(String(body.output))
+    ) {
+        res.status(400).json({
+            error: 'invalid_storyboard_image_request',
+            errorDescription: 'A scene prompt and valid ad output are required.',
+        });
+        return;
+    }
+
+    try {
+        res.json(await storyboardImageService.generate(body.prompt, body.output as 'outside' | 'inside' | 'vertical'));
+    } catch (error) {
+        const message = (error as Error).message;
+        if (message === 'OPENAI_NOT_CONFIGURED') {
+            res.status(503).json({
+                error: 'openai_not_configured',
+                errorDescription: 'Add OPENAI_API_KEY to the server .env file and restart the app.',
+            });
+            return;
+        }
+        if (message === 'OPENAI_EMPTY_PROMPT') {
+            res.status(400).json({
+                error: 'empty_prompt',
+                errorDescription: 'Add visual direction before generating a concept frame.',
+            });
+            return;
+        }
+        console.error('[OpenAI] Unable to generate storyboard image', error);
+        res.status(502).json({
+            error: 'openai_image_failed',
+            errorDescription: 'The concept frame could not be generated. Try again.',
         });
     }
 });

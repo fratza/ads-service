@@ -146,7 +146,7 @@
             type="button"
             [class.active]="i === currentStep()"
             [class.complete]="currentStep() > i"
-            (click)="currentStep() >= i ? goToStep(i) : null">
+            (click)="goToStep(i)">
             <span>{{ currentStep() > i ? '✓' : i + 1 }}</span
             ><strong>{{ step.short }}</strong>
         </button>
@@ -661,9 +661,167 @@
                     </div>
                 }
                 @case (5) {
-                    <div class="step-content">
+                    <div formGroupName="storyboard" class="step-content storyboard-step">
                         <header class="step-header">
                             <span>06</span>
+                            <div>
+                                <h3>Ad production board</h3>
+                                <p>Plan the timing, copy, visuals, and graphics for every deliverable before mapping it to Creatomate.</p>
+                            </div>
+                        </header>
+
+                        <div class="storyboard-intro">
+                            <div>
+                                <span class="storyboard-kicker">CREATIVE TO RENDER</span>
+                                <strong>Build the video composition, not a screenplay.</strong>
+                                <p>Each scene is a timed layout with a job to do: hook attention, deliver the offer, prove the value, or close with a CTA.</p>
+                            </div>
+                            <label class="field storyboard-status">
+                                <span>Production status</span>
+                                <select formControlName="status">
+                                    <option value="draft">Draft</option>
+                                    <option value="ready">Ready for mapping</option>
+                                    <option value="approved">Approved</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <section class="advertisement-idea-generator">
+                            <div>
+                                <span class="storyboard-kicker">AI AD DIRECTION</span>
+                                <strong>Fill this output with a production-ready idea</strong>
+                                <p>Generates real-footage shots, overlay graphics, typography, edit rhythm, and usable scene copy.</p>
+                            </div>
+                            <button type="button" class="storyboard-generate" [disabled]="advertisementIdeaState() === 'generating'" (click)="generateAdvertisementIdea()">
+                                {{ advertisementIdeaState() === 'generating' ? 'Writing direction…' : 'Generate & fill storyboard' }}
+                            </button>
+                            @if (advertisementIdeaError()) {
+                                <p class="storyboard-concept-error" role="alert">{{ advertisementIdeaError() }}</p>
+                            }
+                        </section>
+                        @if (advertisementIdea(); as idea) {
+                            <section class="advertisement-idea-result">
+                                <div><span class="storyboard-kicker">{{ idea.conceptTitle }}</span><strong>{{ idea.hook }}</strong></div>
+                                <dl>
+                                    <div><dt>Footage</dt><dd>{{ idea.footageDirection }}</dd></div>
+                                    <div><dt>Graphics</dt><dd>{{ idea.graphicsDirection }}</dd></div>
+                                    <div><dt>Typography</dt><dd>{{ idea.typographyDirection }}</dd></div>
+                                    <div><dt>Edit</dt><dd>{{ idea.editDirection }}</dd></div>
+                                </dl>
+                            </section>
+                        }
+
+                        <div class="storyboard-output-tabs" role="tablist" aria-label="Ad outputs">
+                            @for (output of storyboardOutputs; track output.key) {
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    [attr.aria-selected]="activeStoryboardOutput() === output.key"
+                                    [class.active]="activeStoryboardOutput() === output.key"
+                                    (click)="selectStoryboardOutput(output.key)">
+                                    <span class="output-ratio" [class.output-ratio--vertical]="output.key === 'vertical'">{{ output.ratio }}</span>
+                                    <span><strong>{{ output.title }}</strong><small>{{ output.label }}</small></span>
+                                    <em>{{ storyboardScenes(output.key).length }} scenes</em>
+                                </button>
+                            }
+                        </div>
+
+                        <section class="storyboard-production-board" [formArrayName]="activeStoryboardOutput()">
+                            <header class="storyboard-board-header">
+                                <div>
+                                    <span class="storyboard-kicker">{{ activeStoryboardOutput() | titlecase }} production timeline</span>
+                                    <strong>{{ storyboardTotal(activeStoryboardOutput()) }} seconds planned</strong>
+                                </div>
+                                <button type="button" class="storyboard-add" (click)="addStoryboardScene(activeStoryboardOutput())">＋ Add scene</button>
+                            </header>
+
+                            <div class="storyboard-timeline" role="list" aria-label="Scenes in this ad output">
+                                @for (scene of storyboardScenes(activeStoryboardOutput()).controls; track scene.controls.id.value; let i = $index) {
+                                    <button
+                                        type="button"
+                                        class="storyboard-timeline-card"
+                                        [class.active]="selectedStoryboardScene() === i"
+                                        role="listitem"
+                                        (click)="selectStoryboardScene(i)">
+                                        <span class="scene-number">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                                        <span class="scene-card-copy"><strong>{{ scene.controls.title.value || 'Untitled scene' }}</strong><small>{{ scene.controls.headline.value || 'No headline yet' }}</small></span>
+                                        <span class="scene-card-meta"><b>{{ scene.controls.duration.value }}s</b><small>{{ scene.controls.purpose.value | titlecase }}</small></span>
+                                    </button>
+                                } @empty {
+                                    <div class="storyboard-empty"><strong>No production scenes yet</strong><span>Add a scene to start laying out this deliverable.</span></div>
+                                }
+                            </div>
+
+                            @if (storyboardScenes(activeStoryboardOutput()).controls[selectedStoryboardScene()]; as selectedScene) {
+                                <article class="storyboard-inspector" [formGroupName]="selectedStoryboardScene()">
+                                    <header class="storyboard-inspector-header">
+                                        <div>
+                                            <span class="storyboard-kicker">Scene {{ selectedStoryboardScene() + 1 }} · composition inspector</span>
+                                            <strong>{{ selectedScene.controls.title.value || 'Untitled scene' }}</strong>
+                                        </div>
+                                        <div class="message-actions">
+                                            <button type="button" [disabled]="selectedStoryboardScene() === 0" (click)="moveStoryboardScene(activeStoryboardOutput(), selectedStoryboardScene(), -1)" aria-label="Move scene earlier">←</button>
+                                            <button type="button" [disabled]="selectedStoryboardScene() === storyboardScenes(activeStoryboardOutput()).length - 1" (click)="moveStoryboardScene(activeStoryboardOutput(), selectedStoryboardScene(), 1)" aria-label="Move scene later">→</button>
+                                            <button type="button" class="danger" (click)="deleteStoryboardScene(activeStoryboardOutput(), selectedStoryboardScene())" aria-label="Delete scene">×</button>
+                                        </div>
+                                    </header>
+                                    <div class="storyboard-concept-preview" [class.storyboard-concept-preview--vertical]="activeStoryboardOutput() === 'vertical'">
+                                        @if (conceptImages()[selectedScene.controls.id.value]; as conceptImage) {
+                                            <img [src]="conceptImage" [alt]="'Generated concept frame for ' + selectedScene.controls.title.value" />
+                                        } @else {
+                                            <div class="storyboard-concept-empty">
+                                                <span aria-hidden="true">✦</span>
+                                                <strong>No concept frame yet</strong>
+                                                <small>Generate a visual reference before mapping this scene to a template.</small>
+                                            </div>
+                                        }
+                                        <div class="storyboard-concept-actions">
+                                            <div>
+                                                <span class="storyboard-kicker">AI CONCEPT FRAME</span>
+                                                <small>Layout reference only · final graphics are added in Creatomate</small>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="storyboard-generate"
+                                                [disabled]="conceptImageStates()[selectedScene.controls.id.value] === 'generating' || !hasConceptInput(activeStoryboardOutput(), selectedStoryboardScene())"
+                                                (click)="generateStoryboardImage(activeStoryboardOutput(), selectedStoryboardScene())">
+                                                {{ conceptImageStates()[selectedScene.controls.id.value] === 'generating' ? 'Generating…' : conceptImages()[selectedScene.controls.id.value] ? 'Regenerate frame' : 'Generate concept frame' }}
+                                            </button>
+                                        </div>
+                                        @if (conceptImageErrors()[selectedScene.controls.id.value]; as conceptError) {
+                                            <p class="storyboard-concept-error" role="alert">{{ conceptError }}</p>
+                                        }
+                                    </div>
+                                    <div class="storyboard-readiness">
+                                        <span>RENDER READINESS</span>
+                                        <b>{{ selectedScene.controls.headline.value && selectedScene.controls.visualPrompt.value ? 'Copy + visual direction ready' : 'Add copy and visual direction' }}</b>
+                                        <small>{{ selectedScene.controls.assetIds.value.length ? selectedScene.controls.assetIds.value.length + ' assets linked' : 'No assets linked yet' }}</small>
+                                    </div>
+                                    <div class="storyboard-fields">
+                                        <label class="field"><span>Scene / layout name</span><input formControlName="title" placeholder="Product reveal" /></label>
+                                        <label class="field"><span>Ad job</span><select formControlName="purpose">
+                                            <option value="hook">Hook</option><option value="message">Message</option><option value="offer">Offer</option><option value="proof">Proof</option><option value="cta">CTA</option><option value="transition">Transition</option>
+                                        </select></label>
+                                        <label class="field"><span>Time on screen</span><div class="suffix-input"><input type="number" min="1" formControlName="duration" /><span>sec</span></div></label>
+                                        <label class="field field--wide"><span>Visual action / layout</span><textarea rows="2" formControlName="description" placeholder="Describe the shot, graphic treatment, motion, and what the viewer should notice."></textarea></label>
+                                        <label class="field"><span>On-screen headline</span><input formControlName="headline" placeholder="Fresh flavor is waiting" /></label>
+                                        <label class="field"><span>Supporting copy / offer</span><input formControlName="supportingText" placeholder="Optional supporting detail" /></label>
+                                        <label class="field field--wide"><span>Assets and graphic direction</span><textarea rows="2" formControlName="visualPrompt" placeholder="Logo top left, product close-up, warm color grade, animated offer badge."></textarea></label>
+                                        <label class="field field--wide"><span>Voiceover, music, or transition</span><textarea rows="2" formControlName="voiceover" placeholder="Optional audio, transition, or timing note."></textarea></label>
+                                    </div>
+                                </article>
+                            }
+                        </section>
+
+                        <div class="storyboard-ready-note">
+                            <span>✓</span><div><strong>Ready for template mapping?</strong><small>Marking this ready hands the production board to the Creatomate mapping step. It does not render the ad yet.</small></div><button type="button" (click)="markStoryboardReady()">Mark ready</button>
+                        </div>
+                    </div>
+                }
+                @case (6) {
+                    <div class="step-content">
+                        <header class="step-header">
+                            <span>07</span>
                             <div>
                                 <h3>Assets</h3>
                                 <p>
@@ -763,7 +921,7 @@
                 @default {
                     <div class="step-content review-step">
                         <header class="step-header">
-                            <span>07</span>
+                            <span>08</span>
                             <div>
                                 <h3>Review the Creatomate handoff</h3>
                                 <p>
@@ -917,10 +1075,10 @@
                             <section>
                                 <header>
                                     <div>
-                                        <span>06</span>
+                                        <span>07</span>
                                         <h4>Assets</h4>
                                     </div>
-                                    <button type="button" (click)="goToStep(5)">Edit</button>
+                                    <button type="button" (click)="goToStep(6)">Edit</button>
                                 </header>
                                 <div class="output-summary" [class.enabled]="assets().length">
                                     <span>{{ assets().length }}</span>
@@ -990,7 +1148,7 @@
                     ← Previous
                 </button>
             }
-            @if (currentStep() < 6) {
+            @if (currentStep() < 7) {
                 <button type="button" class="button button--primary" (click)="next()">
                     Continue <span>→</span>
                 </button>

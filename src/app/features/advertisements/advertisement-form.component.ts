@@ -1,4 +1,4 @@
-import { isPlatformBrowser, JsonPipe, NgTemplateOutlet } from '@angular/common';
+import { isPlatformBrowser, JsonPipe, NgTemplateOutlet, TitleCasePipe } from '@angular/common';
 import { Component, computed, DestroyRef, inject, PLATFORM_ID, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,13 +9,20 @@ import {
     AdvertisementRequestInput,
     AssetCategory,
     ContactOption,
+    StoryboardOutputKey,
+    StoryboardPurpose,
+    StoryboardScene,
+    createStoryboardFromRequest,
     VerticalAdVariation,
 } from '@core/models';
 import {
+    AdvertisementIdea,
+    AdvertisementIdeaService,
     AdvertisementInputService,
     AdvertisementRequestService,
     CreatomatePayloadService,
     StorageService,
+    StoryboardImageService,
 } from '@core/services';
 import { debounceTime } from 'rxjs';
 
@@ -26,6 +33,19 @@ type MessageGroup = FormGroup<{
     supportingText: FormControl<string>;
     displayDuration: FormControl<number>;
     sortOrder: FormControl<number>;
+}>;
+type StoryboardSceneGroup = FormGroup<{
+    id: FormControl<string>;
+    order: FormControl<number>;
+    duration: FormControl<number>;
+    title: FormControl<string>;
+    purpose: FormControl<StoryboardPurpose>;
+    description: FormControl<string>;
+    headline: FormControl<string>;
+    supportingText: FormControl<string>;
+    voiceover: FormControl<string>;
+    visualPrompt: FormControl<string>;
+    assetIds: FormControl<string[]>;
 }>;
 type VariationGroup = FormGroup<{
     id: FormControl<string>;
@@ -45,16 +65,18 @@ const SUPPORTING_LIMIT = 120;
 @Component({
     selector: 'app-advertisement-form',
     standalone: true,
-    imports: [JsonPipe, NgTemplateOutlet, ReactiveFormsModule],
+    imports: [JsonPipe, NgTemplateOutlet, ReactiveFormsModule, TitleCasePipe],
     templateUrl: './advertisement-form.component.html',
     styleUrl: './advertisement-form.component.scss',
     host: { '[class.client-intake]': 'isClientIntake()' },
 })
 export class AdvertisementFormComponent {
     private readonly requestService = inject(AdvertisementRequestService);
+    private readonly advertisementIdeaService = inject(AdvertisementIdeaService);
     private readonly advertisementInput = inject(AdvertisementInputService);
     private readonly storage = inject(StorageService);
     private readonly payloadService = inject(CreatomatePayloadService);
+    private readonly storyboardImageService = inject(StoryboardImageService);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly destroyRef = inject(DestroyRef);
@@ -63,6 +85,12 @@ export class AdvertisementFormComponent {
     readonly autosaveState = signal<'saved' | 'saving'>('saved');
     readonly notice = signal('');
     readonly assets = signal<AdvertisementAsset[]>([]);
+    readonly conceptImages = signal<Record<string, string>>({});
+    readonly conceptImageStates = signal<Record<string, 'idle' | 'generating' | 'error'>>({});
+    readonly conceptImageErrors = signal<Record<string, string>>({});
+    readonly advertisementIdea = signal<AdvertisementIdea | null>(null);
+    readonly advertisementIdeaState = signal<'idle' | 'generating' | 'error'>('idle');
+    readonly advertisementIdeaError = signal('');
     readonly reviewConfirmed = signal(false);
     readonly submitting = signal(false);
     readonly importing = signal(false);
@@ -77,6 +105,7 @@ export class AdvertisementFormComponent {
                 'Outside ads benefit from short, bold headlines that drivers can read quickly.',
                 'Use inside messaging for offers, upgrades, and calls to action near the point of sale.',
                 'Vertical variations use a portrait 9:16 canvas for tall displays.',
+                'Describe each scene, set timing, and prepare a storyboard before choosing assets.',
                 'Selected files are temporary previews. A real upload flow will be added later.',
                 'Confirm every section before marking this request ready.',
             ][this.currentStep()],
@@ -89,9 +118,17 @@ export class AdvertisementFormComponent {
         { title: 'Outside ad', short: 'Outside' },
         { title: 'Inside ad', short: 'Inside' },
         { title: 'Vertical ads', short: 'Vertical' },
+        { title: 'Storyboard', short: 'Storyboard' },
         { title: 'Assets', short: 'Assets' },
         { title: 'Review', short: 'Review' },
     ];
+    readonly storyboardOutputs: { key: StoryboardOutputKey; title: string; ratio: string; label: string }[] = [
+        { key: 'outside', title: 'Outside ad', ratio: '16:9', label: 'Drive-by impact' },
+        { key: 'inside', title: 'Inside ad', ratio: '16:9', label: 'Point-of-sale detail' },
+        { key: 'vertical', title: 'Vertical ad', ratio: '9:16', label: 'Portrait display' },
+    ];
+    readonly activeStoryboardOutput = signal<StoryboardOutputKey>('outside');
+    readonly selectedStoryboardScene = signal(0);
     readonly contactOptions: { value: ContactOption; label: string }[] = [
         { value: 'website', label: 'Website' },
         { value: 'phone', label: 'Phone' },
@@ -196,6 +233,12 @@ export class AdvertisementFormComponent {
             contactOptions: new FormControl<ContactOption[]>(['website'], { nonNullable: true }),
             variations: new FormArray<VariationGroup>([]),
         }),
+        storyboard: new FormGroup({
+            status: new FormControl<'draft' | 'ready' | 'approved'>('draft', { nonNullable: true }),
+            outside: new FormArray<StoryboardSceneGroup>([]),
+            inside: new FormArray<StoryboardSceneGroup>([]),
+            vertical: new FormArray<StoryboardSceneGroup>([]),
+        }),
     });
     readonly isEdit = computed(() => Boolean(this.route.snapshot.paramMap.get('id')));
     readonly clientToken = this.route.snapshot.paramMap.get('token');
@@ -244,6 +287,149 @@ export class AdvertisementFormComponent {
     get verticalVariations(): FormArray<VariationGroup> {
         return this.form.controls.vertical.controls.variations;
     }
+    storyboardScenes(output: StoryboardOutputKey): FormArray<StoryboardSceneGroup> {
+        return this.form.controls.storyboard.controls[output];
+    }
+    storyboardTotal(output: StoryboardOutputKey): number {
+        return this.storyboardScenes(output).controls.reduce(
+            (total, scene) => total + Math.max(0, scene.controls.duration.value || 0),
+            0,
+        );
+    }
+    selectStoryboardOutput(output: StoryboardOutputKey): void {
+        this.activeStoryboardOutput.set(output);
+        this.selectedStoryboardScene.set(0);
+    }
+    selectStoryboardScene(index: number): void {
+        this.selectedStoryboardScene.set(index);
+    }
+    hasConceptInput(output: StoryboardOutputKey, index: number): boolean {
+        const scene = this.storyboardScenes(output).at(index);
+        if (!scene) return false;
+        return Boolean(
+            scene.controls.title.value.trim() ||
+                scene.controls.description.value.trim() ||
+                scene.controls.headline.value.trim() ||
+                scene.controls.visualPrompt.value.trim(),
+        );
+    }
+    async generateAdvertisementIdea(): Promise<void> {
+        if (this.advertisementIdeaState() === 'generating') return;
+        const output = this.activeStoryboardOutput();
+        const scenes = this.storyboardScenes(output).getRawValue();
+        const context = JSON.stringify({
+            business: {
+                name: this.form.controls.dealer.controls.businessName.value,
+                highlights: this.form.controls.dealer.controls.highlights.value,
+                adLength: this.form.controls.dealer.controls.generalAdLength.value,
+            },
+            output,
+            aspectRatio: output === 'vertical' ? '9:16' : '16:9',
+            existingScenes: scenes.map((scene) => ({
+                purpose: scene.purpose,
+                duration: scene.duration,
+                headline: scene.headline,
+                supportingText: scene.supportingText,
+                visualDirection: scene.visualPrompt,
+            })),
+            instruction:
+                'Create an executable real-video ad direction using captured footage, graphic overlays, and a readable typography system. Fill the storyboard scene inputs with usable headlines, supporting copy, footage direction, overlay direction, typography, and edit prompts.',
+        });
+        this.advertisementIdeaState.set('generating');
+        this.advertisementIdeaError.set('');
+        try {
+            const idea = await this.advertisementIdeaService.generate(context);
+            this.advertisementIdea.set(idea);
+            const storyboard = this.storyboardScenes(output);
+            storyboard.clear();
+            idea.scenes.forEach((scene, index) => {
+                storyboard.push(
+                    this.createStoryboardScene(output, index, {
+                        id: `scene-${output}-${crypto.randomUUID()}`,
+                        order: index + 1,
+                        duration: scene.duration,
+                        title: scene.headline || `${scene.purpose} scene`,
+                        purpose: this.storyboardPurpose(scene.purpose),
+                        description: scene.footage,
+                        headline: scene.headline,
+                        supportingText: scene.supportingText,
+                        voiceover: this.form.controls.dealer.controls.highlights.value,
+                        visualPrompt: `${scene.overlays}\nTypography: ${scene.typography}\nEdit: ${scene.prompt}`.trim(),
+                        assetIds: [],
+                    }),
+                );
+            });
+            this.selectedStoryboardScene.set(0);
+            this.flash(`${output} production board filled with ${idea.scenes.length} scenes`);
+            this.advertisementIdeaState.set('idle');
+        } catch (error) {
+            const description = (error as { error?: { errorDescription?: string } }).error
+                ?.errorDescription;
+            this.advertisementIdeaError.set(description || 'The advertisement idea could not be generated.');
+            this.advertisementIdeaState.set('error');
+        }
+    }
+    private storyboardPurpose(value: string): StoryboardPurpose {
+        return ['hook', 'message', 'offer', 'proof', 'cta', 'transition'].includes(value)
+            ? (value as StoryboardPurpose)
+            : 'message';
+    }
+    async generateStoryboardImage(output: StoryboardOutputKey, index: number): Promise<void> {
+        const scene = this.storyboardScenes(output).at(index);
+        if (!scene || this.conceptImageStates()[scene.controls.id.value] === 'generating') return;
+        const businessName = this.form.controls.dealer.controls.businessName.value || 'the business';
+        const prompt = [
+            `Create a production concept frame for a ${output === 'vertical' ? '9:16 portrait' : '16:9 landscape'} digital advertisement for ${businessName}.`,
+            `Scene purpose: ${scene.controls.purpose.value}.`,
+            `Scene title: ${scene.controls.title.value}.`,
+            `Visual action: ${scene.controls.description.value}.`,
+            `Graphic direction: ${scene.controls.visualPrompt.value}.`,
+            `On-screen headline: ${scene.controls.headline.value}.`,
+            `Supporting copy: ${scene.controls.supportingText.value}.`,
+            'Leave clean negative space for the supplied logo, headline, offer, and CTA. Do not render readable text or logos; this is a visual layout reference for a later Creatomate composition.',
+        ].join('\n');
+        const sceneId = scene.controls.id.value;
+        this.conceptImageStates.update((states) => ({ ...states, [sceneId]: 'generating' }));
+        this.conceptImageErrors.update((errors) => ({ ...errors, [sceneId]: '' }));
+        try {
+            const result = await this.storyboardImageService.generate(prompt, output);
+            this.conceptImages.update((images) => ({ ...images, [sceneId]: result.dataUrl }));
+            this.conceptImageStates.update((states) => ({ ...states, [sceneId]: 'idle' }));
+        } catch (error) {
+            const description = (error as { error?: { errorDescription?: string } }).error
+                ?.errorDescription;
+            this.conceptImageStates.update((states) => ({ ...states, [sceneId]: 'error' }));
+            this.conceptImageErrors.update((errors) => ({
+                ...errors,
+                [sceneId]: description || 'The concept frame could not be generated.',
+            }));
+        }
+    }
+    addStoryboardScene(output: StoryboardOutputKey): void {
+        const scenes = this.storyboardScenes(output);
+        scenes.push(this.createStoryboardScene(output, scenes.length));
+        this.renumberStoryboardScenes(output);
+        this.selectedStoryboardScene.set(scenes.length - 1);
+    }
+    deleteStoryboardScene(output: StoryboardOutputKey, index: number): void {
+        const scenes = this.storyboardScenes(output);
+        scenes.removeAt(index);
+        this.renumberStoryboardScenes(output);
+        this.selectedStoryboardScene.set(Math.max(0, Math.min(index, scenes.length - 1)));
+    }
+    moveStoryboardScene(output: StoryboardOutputKey, index: number, direction: -1 | 1): void {
+        const scenes = this.storyboardScenes(output);
+        const target = index + direction;
+        if (target < 0 || target >= scenes.length) return;
+        const scene = scenes.at(index);
+        scenes.removeAt(index);
+        scenes.insert(target, scene);
+        this.renumberStoryboardScenes(output);
+        this.selectedStoryboardScene.set(target);
+    }
+    markStoryboardReady(): void {
+        this.form.controls.storyboard.controls.status.setValue('ready');
+    }
     included(option: ContactOption): boolean {
         return this.form.controls.contact.controls.included.value.includes(option);
     }
@@ -270,7 +456,7 @@ export class AdvertisementFormComponent {
     next(): void {
         if (!this.validateStep(this.currentStep())) return;
         this.currentStep.update((step) => Math.min(step + 1, this.steps.length - 1));
-        if (this.currentStep() === 6) this.refreshPayload();
+        if (this.currentStep() === 7) this.refreshPayload();
         this.scrollTop();
     }
     previous(): void {
@@ -278,6 +464,11 @@ export class AdvertisementFormComponent {
         this.scrollTop();
     }
     goToStep(step: number): void {
+        if (step > this.currentStep()) {
+            for (let priorStep = 0; priorStep < step; priorStep += 1) {
+                if (!this.validateStep(priorStep)) return;
+            }
+        }
         this.currentStep.set(step);
         this.scrollTop();
     }
@@ -292,6 +483,9 @@ export class AdvertisementFormComponent {
         this.outsideMessages.clear();
         this.insideMessages.clear();
         this.verticalVariations.clear();
+        this.form.controls.storyboard.controls.outside.clear();
+        this.form.controls.storyboard.controls.inside.clear();
+        this.form.controls.storyboard.controls.vertical.clear();
         this.assets.set([]);
         this.seedDefaults();
         this.currentStep.set(0);
@@ -534,6 +728,81 @@ export class AdvertisementFormComponent {
                 'Upgrade to a Jumbo Rita.',
             ]);
         if (!this.verticalVariations.length) this.syncVariations(1, ['Happy Hour Starts Here']);
+        if (!this.storyboardScenes('outside').length) {
+            this.seedStoryboardFromMessages('outside', this.outsideMessages.getRawValue());
+            this.seedStoryboardFromMessages('inside', this.insideMessages.getRawValue());
+            this.seedStoryboardFromVariations();
+        }
+    }
+    private seedStoryboardFromMessages(
+        output: 'outside' | 'inside',
+        messages: Array<{ headline: string; supportingText: string; displayDuration: number }>,
+    ): void {
+        const scenes = this.storyboardScenes(output);
+        messages.forEach((message, index) =>
+            scenes.push(
+                this.createStoryboardScene(output, index, {
+                    id: `scene-${output}-${index + 1}`,
+                    order: index + 1,
+                    duration: message.displayDuration,
+                    title: message.headline || `Scene ${index + 1}`,
+                    purpose: index === 0 ? 'hook' : index === messages.length - 1 ? 'cta' : 'message',
+                    description: message.supportingText,
+                    headline: message.headline,
+                    supportingText: message.supportingText,
+                    voiceover: '',
+                    visualPrompt: '',
+                    assetIds: [],
+                }),
+            ),
+        );
+    }
+    private seedStoryboardFromVariations(): void {
+        const scenes = this.storyboardScenes('vertical');
+        this.verticalVariations.getRawValue().forEach((variation, index, variations) =>
+            scenes.push(
+                this.createStoryboardScene('vertical', index, {
+                    id: `scene-vertical-${index + 1}`,
+                    order: index + 1,
+                    duration: this.form.controls.dealer.controls.generalAdLength.value ?? 15,
+                    title: variation.headline || `Scene ${index + 1}`,
+                    purpose: index === 0 ? 'hook' : index === variations.length - 1 ? 'cta' : 'message',
+                    description: [variation.message, variation.supportingText].filter(Boolean).join(' '),
+                    headline: variation.headline,
+                    supportingText: variation.supportingText,
+                    voiceover: '',
+                    visualPrompt: '',
+                    assetIds: [],
+                }),
+            ),
+        );
+    }
+    private createStoryboardScene(
+        output: StoryboardOutputKey,
+        index: number,
+        scene?: StoryboardScene,
+    ): StoryboardSceneGroup {
+        return new FormGroup({
+            id: new FormControl(scene?.id ?? `scene-${output}-${crypto.randomUUID()}`, { nonNullable: true }),
+            order: new FormControl(index + 1, { nonNullable: true }),
+            duration: new FormControl(scene?.duration ?? 5, {
+                nonNullable: true,
+                validators: [Validators.required, Validators.min(1)],
+            }),
+            title: new FormControl(scene?.title ?? `Scene ${index + 1}`, { nonNullable: true }),
+            purpose: new FormControl<StoryboardPurpose>(scene?.purpose ?? 'message', { nonNullable: true }),
+            description: new FormControl(scene?.description ?? '', { nonNullable: true }),
+            headline: new FormControl(scene?.headline ?? '', { nonNullable: true }),
+            supportingText: new FormControl(scene?.supportingText ?? '', { nonNullable: true }),
+            voiceover: new FormControl(scene?.voiceover ?? '', { nonNullable: true }),
+            visualPrompt: new FormControl(scene?.visualPrompt ?? '', { nonNullable: true }),
+            assetIds: new FormControl(scene?.assetIds ?? [], { nonNullable: true }),
+        });
+    }
+    private renumberStoryboardScenes(output: StoryboardOutputKey): void {
+        this.storyboardScenes(output).controls.forEach((scene, index) =>
+            scene.controls.order.setValue(index + 1, { emitEvent: false }),
+        );
     }
     private createMessage(
         headline: string,
@@ -672,6 +941,14 @@ export class AdvertisementFormComponent {
             this.flash('Add at least one vertical variation');
             return false;
         }
+        if (step === 5) {
+            const storyboard = this.form.controls.storyboard;
+            storyboard.markAllAsTouched();
+            if (storyboard.invalid) {
+                this.flash('Each storyboard scene needs a valid duration');
+                return false;
+            }
+        }
         return true;
     }
     private validateEnabledMessages(): boolean {
@@ -706,6 +983,25 @@ export class AdvertisementFormComponent {
             outsideAd: value.outside,
             insideAd: value.inside,
             verticalAds: value.vertical,
+            storyboard: {
+                version: 1,
+                status: value.storyboard.status,
+                outputs: {
+                    outside: {
+                        duration: value.outside.length,
+                        scenes: value.storyboard.outside,
+                    },
+                    inside: {
+                        duration: value.inside.length,
+                        scenes: value.storyboard.inside,
+                    },
+                    vertical: {
+                        duration: value.dealer.generalAdLength,
+                        scenes: value.storyboard.vertical,
+                    },
+                },
+                updatedAt: new Date().toISOString(),
+            },
             assets: this.assets().map((asset) => ({ ...asset, previewUrl: '' })),
             status,
         };
@@ -767,6 +1063,15 @@ export class AdvertisementFormComponent {
             group.patchValue(item);
             this.verticalVariations.push(group);
         });
+        const storyboard = request.storyboard ?? createStoryboardFromRequest(request);
+        this.form.controls.storyboard.controls.status.setValue(storyboard.status, { emitEvent: false });
+        for (const output of ['outside', 'inside', 'vertical'] as StoryboardOutputKey[]) {
+            const scenes = this.storyboardScenes(output);
+            scenes.clear();
+            storyboard.outputs[output].scenes.forEach((scene, index) =>
+                scenes.push(this.createStoryboardScene(output, index, scene)),
+            );
+        }
         this.assets.set(request.assets ?? []);
     }
     private refreshPayload(): void {
